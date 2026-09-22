@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "workflow": "github-native",
+  "kit_repository": "cuongtobi/gpt-web-vibe-kit",
+  "github": {
+    "task_state": "pull_request_body",
+    "branch_prefix": "vibe/"
+  },
+  "context": {
+    "max_dependency_depth": 2,
+    "max_source_files": 20,
+    "max_test_files": 10,
+    "max_related_modules": 8,
+    "rebuild_changed_ratio": 0.5
+  },
+  "verification": {
+    "require_commands": true,
+    "commands": []
+  }
+}

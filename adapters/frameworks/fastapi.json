@@ -1,0 +1,11 @@
+{
+  "id": "fastapi",
+  "kind": "framework",
+  "language": "python",
+  "search": {
+    "context": ["APIRouter/FastAPI routes", "Depends providers", "Pydantic schemas", "service/repository boundaries"],
+    "consumers": ["route imports", "dependency providers", "background tasks"]
+  },
+  "verification": ["pytest", "OpenAPI/schema checks when relevant"],
+  "limitations": ["dependency injection and startup/runtime registration may be dynamic"]
+}

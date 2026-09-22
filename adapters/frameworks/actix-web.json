@@ -1,0 +1,11 @@
+{
+  "id": "actix-web",
+  "kind": "framework",
+  "language": "rust",
+  "search": {
+    "context": ["App/service configuration", "handlers", "extractors", "state", "services"],
+    "consumers": ["service/route registration", "handler/state usage"]
+  },
+  "verification": ["cargo test", "cargo check", "cargo clippy when configured"],
+  "limitations": ["macros and runtime service configuration are best-effort statically"]
+}

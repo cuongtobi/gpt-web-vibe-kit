@@ -1,0 +1,11 @@
+{
+  "id": "python",
+  "kind": "language",
+  "search": {
+    "targets": ["class/function names", "traceback text", "route/task names"],
+    "dependencies": ["inspect import/from statements", "inspect dependency injection/provider wiring"],
+    "consumers": ["search imported module path", "search class/function symbol usage"]
+  },
+  "verification": ["pytest", "ruff", "pyright/mypy when configured"],
+  "limitations": ["dynamic imports, decorators, DI and framework registries are best-effort"]
+}

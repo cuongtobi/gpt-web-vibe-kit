@@ -1,0 +1,11 @@
+{
+  "id": "nestjs",
+  "kind": "framework",
+  "language": "typescript",
+  "search": {
+    "context": ["modules", "controllers", "providers", "guards", "interceptors", "DTOs"],
+    "consumers": ["module imports/exports", "provider injection", "controller routes"]
+  },
+  "verification": ["project tests", "typecheck", "lint", "build"],
+  "limitations": ["DI metadata and dynamic modules require native Nest tests/build"]
+}

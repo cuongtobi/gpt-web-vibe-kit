@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GPT Web Vibe Project Context",
+  "type": "object",
+  "required": ["schema_version", "project", "languages", "frameworks", "entrypoints", "verification", "context_limits", "dependency_authority"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "project": {"type": "object"},
+    "languages": {"type": "array", "items": {"type": "string"}},
+    "primary_language": {"type": ["string", "null"]},
+    "frameworks": {"type": "array", "items": {"type": "string"}},
+    "entrypoints": {"type": "array", "items": {"type": "string"}},
+    "verification": {"type": "object"},
+    "context_limits": {"type": "object"},
+    "dependency_authority": {"type": "object"}
+  }
+}

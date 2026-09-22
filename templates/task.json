@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "task_id": "example-task",
+  "mode": "feature",
+  "status": "planning",
+  "request": "Describe the requested change.",
+  "base_branch": "main",
+  "base_sha": "",
+  "head_branch": "vibe/feature/example-task",
+  "head_sha": "",
+  "targets": [],
+  "context": {
+    "symbols": [],
+    "dependencies": [],
+    "consumers": [],
+    "tests": [],
+    "config_files": [],
+    "observed_files": []
+  },
+  "acceptance": [
+    {
+      "id": "AC1",
+      "expected": "Observable expected result",
+      "evidence": "",
+      "status": "pending"
+    }
+  ],
+  "verification": {
+    "commands": [],
+    "ci_run_id": null,
+    "status": null
+  },
+  "uncertainties": []
+}

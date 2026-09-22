@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": null,
+    "summary": null
+  },
+  "languages": [],
+  "primary_language": null,
+  "frameworks": [],
+  "entrypoints": [],
+  "verification": {
+    "commands": []
+  },
+  "context_limits": {
+    "max_dependency_depth": 2,
+    "max_source_files": 20,
+    "max_test_files": 10,
+    "max_related_modules": 8
+  },
+  "dependency_authority": {
+    "level": "advisory",
+    "model": "static-best-effort"
+  }
+}

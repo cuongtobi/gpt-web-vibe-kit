@@ -1,0 +1,11 @@
+{
+  "id": "ruby",
+  "kind": "language",
+  "search": {
+    "targets": ["class/module/method names", "route/job names", "error text"],
+    "dependencies": ["inspect require/require_relative and framework conventions"],
+    "consumers": ["search constant/method usage", "search framework registration and routes"]
+  },
+  "verification": ["RSpec/Minitest", "RuboCop when configured", "framework-native checks"],
+  "limitations": ["autoloading, metaprogramming and Rails runtime wiring are best-effort"]
+}

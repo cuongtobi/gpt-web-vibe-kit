@@ -1,0 +1,11 @@
+{
+  "id": "gin",
+  "kind": "framework",
+  "language": "go",
+  "search": {
+    "context": ["router setup", "handlers", "middleware", "services", "repositories"],
+    "consumers": ["route registration", "handler/service usage"]
+  },
+  "verification": ["go test ./...", "go vet ./...", "integration tests when configured"],
+  "limitations": ["runtime route composition is best-effort statically"]
+}

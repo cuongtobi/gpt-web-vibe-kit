@@ -1,0 +1,11 @@
+{
+  "id": "django",
+  "kind": "framework",
+  "language": "python",
+  "search": {
+    "context": ["urls.py", "views", "models", "forms/serializers", "signals", "management commands"],
+    "consumers": ["URL inclusion", "model/service usage", "signal registration"]
+  },
+  "verification": ["manage.py test or pytest", "manage.py check"],
+  "limitations": ["signals, settings-driven apps and runtime registration may be dynamic"]
+}

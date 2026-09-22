@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GPT Web Vibe Task Manifest",
+  "type": "object",
+  "required": ["schema_version", "task_id", "mode", "status", "request", "targets", "context", "acceptance"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "mode": {"enum": ["feature", "change", "bug_fix", "refactor", "hotfix"]},
+    "status": {"enum": ["planning", "building", "verifying", "blocked", "ready", "complete"]},
+    "request": {"type": "string", "minLength": 1},
+    "targets": {"type": "array", "items": {"type": "string"}},
+    "context": {"type": "object"},
+    "acceptance": {"type": "array"}
+  }
+}

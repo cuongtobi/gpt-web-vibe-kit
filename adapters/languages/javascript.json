@@ -1,0 +1,11 @@
+{
+  "id": "javascript",
+  "kind": "language",
+  "search": {
+    "targets": ["function/class/export names", "route/component names", "error text"],
+    "dependencies": ["inspect import/export/require", "honor package.json exports and project aliases"],
+    "consumers": ["search import specifiers", "search exported symbol usage"]
+  },
+  "verification": ["project test script", "eslint", "build/type checks when configured"],
+  "limitations": ["dynamic imports and bundler-only aliases are best-effort"]
+}

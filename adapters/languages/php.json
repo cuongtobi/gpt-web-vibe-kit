@@ -1,0 +1,11 @@
+{
+  "id": "php",
+  "kind": "language",
+  "search": {
+    "targets": ["class/function names", "route/hook names", "exception text"],
+    "dependencies": ["inspect namespace/use, require/include and container bindings"],
+    "consumers": ["search namespace/class usage", "search route/hook registration"]
+  },
+  "verification": ["PHPUnit/Pest", "PHPStan/Larastan when configured", "framework tests"],
+  "limitations": ["container resolution, WordPress hooks and runtime registration are best-effort"]
+}

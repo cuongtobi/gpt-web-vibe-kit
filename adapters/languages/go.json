@@ -1,0 +1,11 @@
+{
+  "id": "go",
+  "kind": "language",
+  "search": {
+    "targets": ["function/type/package names", "handler names", "error text"],
+    "dependencies": ["inspect module-local imports and interface dependencies"],
+    "consumers": ["search package imports", "search exported symbol usage"]
+  },
+  "verification": ["go test ./...", "go vet ./...", "project lint when configured"],
+  "limitations": ["generated code and runtime registration are best-effort"]
+}

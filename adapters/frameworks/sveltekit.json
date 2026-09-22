@@ -1,0 +1,11 @@
+{
+  "id": "sveltekit",
+  "kind": "framework",
+  "language": "typescript",
+  "search": {
+    "context": ["routes", "+page/+layout/+server files", "hooks", "stores", "server/client boundaries"],
+    "consumers": ["file-system routes", "load/action usage", "shared module imports"]
+  },
+  "verification": ["typecheck", "lint", "tests", "svelte-kit build when configured"],
+  "limitations": ["generated route types and framework runtime behavior require native tooling"]
+}

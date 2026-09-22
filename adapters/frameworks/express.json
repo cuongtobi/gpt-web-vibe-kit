@@ -1,0 +1,11 @@
+{
+  "id": "express",
+  "kind": "framework",
+  "language": "javascript",
+  "search": {
+    "context": ["routers", "middleware", "controllers/handlers", "services", "data adapters"],
+    "consumers": ["router mounting", "middleware registration", "handler imports"]
+  },
+  "verification": ["project tests", "lint/typecheck", "integration tests when configured"],
+  "limitations": ["runtime middleware composition and dynamic routing are best-effort"]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "vite",
+  "kind": "framework",
+  "language": "typescript",
+  "search": {
+    "context": ["vite config", "plugins", "aliases", "entrypoints", "env handling"],
+    "consumers": ["config aliases", "plugin usage", "build entrypoints"]
+  },
+  "verification": ["project tests", "typecheck/lint", "vite build"],
+  "limitations": ["plugin/runtime transforms can be dynamic"]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "spring",
+  "kind": "framework",
+  "language": "java",
+  "search": {
+    "context": ["controllers", "services", "repositories", "configuration", "entities", "events"],
+    "consumers": ["constructor/field injection", "bean configuration", "endpoint/service usage"]
+  },
+  "verification": ["Maven/Gradle tests", "compiler", "ArchUnit when configured"],
+  "limitations": ["reflection, proxies and application-context wiring require native Spring tests"]
+}

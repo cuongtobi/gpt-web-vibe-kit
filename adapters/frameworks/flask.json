@@ -1,0 +1,11 @@
+{
+  "id": "flask",
+  "kind": "framework",
+  "language": "python",
+  "search": {
+    "context": ["Flask app factory", "Blueprint routes", "extensions", "services", "models"],
+    "consumers": ["Blueprint registration", "route imports", "extension/service usage"]
+  },
+  "verification": ["pytest", "flask routes or project smoke checks when configured"],
+  "limitations": ["extension initialization and runtime registration may be dynamic"]
+}

@@ -1,6 +1,6 @@
 # gpt-web-vibe-kit
 
-[Tiếng Việt](README_vi.md)
+[Tiếng Việt](README_vi.md) · [Detailed usage guide](docs/usage.md)
 
 A GitHub-native vibe-coding kit for **ChatGPT Web + GitHub**, based on the workflow ideas from [my-vibe-kit](https://github.com/cuongtobi/my-vibe-kit) but redesigned for web sessions without a persistent local checkout.
 

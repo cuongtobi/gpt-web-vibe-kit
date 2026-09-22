@@ -4,7 +4,10 @@ import argparse
 import json
 from pathlib import Path
 
-from runtime.state import context_decision, extract_task_manifest, validate_project_context, validate_task_manifest
+try:
+    from runtime.state import context_decision, extract_task_manifest, validate_project_context, validate_task_manifest
+except ModuleNotFoundError:  # direct execution: python runtime/vibe_web.py
+    from state import context_decision, extract_task_manifest, validate_project_context, validate_task_manifest
 
 
 def _load_json(path: Path) -> dict:

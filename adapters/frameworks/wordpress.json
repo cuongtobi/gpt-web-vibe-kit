@@ -1,0 +1,11 @@
+{
+  "id": "wordpress",
+  "kind": "framework",
+  "language": "php",
+  "search": {
+    "context": ["plugins/themes", "hooks/filters", "shortcodes", "REST routes", "blocks", "templates", "options/meta"],
+    "consumers": ["add_action/add_filter", "REST registration", "template/block usage"]
+  },
+  "verification": ["PHPUnit/project tests", "lint/static analysis", "manual integration checks when no harness exists"],
+  "limitations": ["dynamic hooks, globals and plugin/theme runtime composition are best-effort"]
+}

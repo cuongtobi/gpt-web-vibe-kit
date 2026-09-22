@@ -1,0 +1,11 @@
+{
+  "id": "rust",
+  "kind": "language",
+  "search": {
+    "targets": ["function/struct/trait/module names", "handler names", "error text"],
+    "dependencies": ["inspect mod/use/crate paths and feature flags"],
+    "consumers": ["search crate/module paths", "search public symbol usage"]
+  },
+  "verification": ["cargo test", "cargo check", "cargo clippy when configured"],
+  "limitations": ["macros, generated code and feature-dependent wiring are best-effort"]
+}

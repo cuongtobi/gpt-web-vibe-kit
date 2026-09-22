@@ -1,0 +1,11 @@
+{
+  "id": "java",
+  "kind": "language",
+  "search": {
+    "targets": ["class/interface/method names", "endpoint names", "exception text"],
+    "dependencies": ["inspect package/import and DI annotations"],
+    "consumers": ["search imported class/interface and injected type usage"]
+  },
+  "verification": ["Maven/Gradle tests", "compiler", "ArchUnit/SpotBugs when configured"],
+  "limitations": ["reflection and DI/runtime wiring are best-effort"]
+}

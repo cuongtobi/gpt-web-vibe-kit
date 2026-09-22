@@ -1,0 +1,10 @@
+{
+  "id": "generic",
+  "kind": "language",
+  "search": {
+    "targets": ["search request keywords, filenames and stable identifiers"],
+    "dependencies": ["inspect explicit references in target files"],
+    "consumers": ["search target filename, module name and public symbols"]
+  },
+  "verification": ["use established project-native checks"]
+}

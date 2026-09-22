@@ -1,0 +1,11 @@
+{
+  "id": "typescript",
+  "kind": "language",
+  "search": {
+    "targets": ["function/class/type/export names", "route/component names", "error text"],
+    "dependencies": ["inspect import/export", "honor tsconfig/jsconfig paths and workspace package exports"],
+    "consumers": ["search import specifiers", "search exported symbol/type usage"]
+  },
+  "verification": ["tsc --noEmit or project typecheck", "eslint", "project tests/build"],
+  "limitations": ["DI metadata, generated types/routes and bundler-only aliases are best-effort"]
+}

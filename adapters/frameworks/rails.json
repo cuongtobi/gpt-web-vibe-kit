@@ -1,0 +1,11 @@
+{
+  "id": "rails",
+  "kind": "framework",
+  "language": "ruby",
+  "search": {
+    "context": ["routes", "controllers", "models", "services", "jobs", "mailers", "policies", "migrations"],
+    "consumers": ["route/controller actions", "constant usage", "callbacks", "job/service calls"]
+  },
+  "verification": ["rails test or rspec", "rubocop", "rails zeitwerk:check when appropriate"],
+  "limitations": ["Zeitwerk, callbacks, concerns and metaprogramming are best-effort statically"]
+}

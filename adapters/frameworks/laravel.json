@@ -1,0 +1,11 @@
+{
+  "id": "laravel",
+  "kind": "framework",
+  "language": "php",
+  "search": {
+    "context": ["routes", "controllers", "requests", "models", "services", "jobs", "events/listeners", "providers"],
+    "consumers": ["routes", "container bindings", "events/listeners", "facade/service usage"]
+  },
+  "verification": ["php artisan test", "Pest/PHPUnit", "Larastan/PHPStan when configured"],
+  "limitations": ["service container and runtime provider wiring are best-effort"]
+}

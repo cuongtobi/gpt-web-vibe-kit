@@ -1,5 +1,7 @@
 # gpt-web-vibe-kit
 
+[Hướng dẫn sử dụng chi tiết](docs/usage-vi.md) · [English guide](docs/usage.md)
+
 Bộ vibe-coding GitHub-native cho **ChatGPT Web + GitHub**, lấy tư tưởng từ [my-vibe-kit](https://github.com/cuongtobi/my-vibe-kit) nhưng thiết kế lại cho session Web không có local checkout bền vững.
 
 ```text

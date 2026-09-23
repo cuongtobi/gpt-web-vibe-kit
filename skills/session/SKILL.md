@@ -1,6 +1,6 @@
 ---
 name: session
-description: Restores bounded project and task context from GitHub at the start of a new ChatGPT Web session.
+description: Restores bounded project and task context from GitHub at the start of a ChatGPT Web session.
 ---
 
 # Session
@@ -10,56 +10,55 @@ Reconstruct enough current context to continue safely without loading the whole 
 
 ## Bootstrap order
 1. Read target `AGENTS.md`.
-2. Read `.vibe/config.json` and `.vibe/project-context.json` when present.
+2. Read `.vibe/config.json` and `.vibe/project-context.json`.
 3. Resolve the task:
-   - use an explicitly named PR/branch/task first;
-   - when the user clearly says to continue and exactly one matching vibe PR exists, use it;
-   - otherwise match open PRs by request/branch/title rather than guessing.
-4. Read the selected PR metadata/body and parse the block between:
-   - `<!-- gpt-web-vibe:task:start -->`
-   - `<!-- gpt-web-vibe:task:end -->`
-5. Read the current PR changed filenames/diff.
-6. Validate observed file references by fetching their current GitHub blob SHAs from the PR head branch.
+   - explicit PR/branch/task first;
+   - otherwise the uniquely matching open vibe PR;
+   - list candidates instead of guessing when ambiguous.
+4. Read the selected PR metadata/body.
+5. Require exactly one manifest block and `schema_version: 2`.
+6. Read the current PR changed filenames/diff.
+7. Fetch current blob SHAs for every observed file from the PR head.
+8. Apply the hard budget from `.vibe/config.json` before expanding context.
+
+A duplicate/mismatched manifest block is invalid. A v1 task must be rebuilt into v2 from current GitHub state before normal continuation.
+
+## Hard budget
+The configured values are limits, not suggestions:
+- `max_dependency_depth`;
+- `max_source_files`;
+- `max_test_files`;
+- `max_related_modules`;
+- `rebuild_changed_ratio`.
+
+Each `observed_files` entry records `role`, `depth`, `symbols` and blob `sha`, allowing budget/depth checks to be deterministic. If the saved neighborhood exceeds the configured hard budget, choose `CONTEXT_REBUILD` and reduce/split scope instead of loading more.
 
 ## Context decision
 
 ### CONTEXT_HIT
-Use when:
-- task scope is unchanged;
-- observed file SHAs are unchanged.
-
-Fetch current content only for the bounded referenced files needed for the immediate step.
+Use when scope is unchanged, observed SHAs are current and the manifest fits the hard budget.
 
 ### CONTEXT_REFRESH
-Use when:
-- only a bounded minority of observed files changed;
-- branch/task identity is still the same.
-
-Refresh changed files plus their direct imports/dependencies, direct consumers and related tests. Update the PR manifest references.
+Use when only a bounded minority changed. Refresh those files plus direct dependency/consumer/test relationships needed for the current step. Do not exceed the budget.
 
 ### CONTEXT_REBUILD
 Use when:
-- manifest is missing/invalid;
+- manifest is missing/invalid/v1/duplicated;
 - task scope materially changed;
 - base/rebase invalidated the prior neighborhood;
-- most observed files changed;
-- previous targets are no longer relevant.
-
-Rediscover targets from the request, then rebuild the bounded neighborhood.
+- previous targets are no longer relevant;
+- changed-file ratio exceeds configured threshold;
+- saved context exceeds the hard budget.
 
 ## Bounded load order
-Prefer:
 1. explicit targets;
-2. changed files in the current PR;
+2. current PR changed files;
 3. direct dependencies;
 4. direct consumers;
 5. related tests/config/contracts;
 6. framework/runtime relationships only when evidence requires them.
 
-Respect `.vibe/config.json` limits. Never load every historical task or the entire repository as default context.
-
-## Dependency rule
-Static relationships are advisory. Search direct imports/requires/usages and framework registrations, but use native tests/analyzers for dynamic wiring.
+Never load the whole repository by default.
 
 ## Output
-Return the context state (HIT/REFRESH/REBUILD), selected task/PR/head SHA, files loaded, stale references refreshed, and remaining uncertainty.
+Return context state, selected PR/head SHA, files loaded, stale references refreshed, budget usage and remaining uncertainty.

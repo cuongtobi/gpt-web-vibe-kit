@@ -1,0 +1,16 @@
+{
+  "name": "nextjs-small",
+  "scripts": {
+    "test": "vitest run",
+    "lint": "next lint",
+    "build": "next build"
+  },
+  "dependencies": {
+    "next": "15.0.0",
+    "react": "19.0.0"
+  },
+  "devDependencies": {
+    "typescript": "5.0.0",
+    "vite": "6.0.0"
+  }
+}

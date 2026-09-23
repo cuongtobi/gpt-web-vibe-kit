@@ -1,13 +1,13 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "task_id": "example-task",
   "mode": "feature",
   "status": "planning",
   "request": "Describe the requested change.",
   "base_branch": "main",
-  "base_sha": "",
+  "base_sha": "<base-sha>",
   "head_branch": "vibe/feature/example-task",
-  "head_sha": "",
+  "head_sha": "<head-sha>",
   "targets": [],
   "context": {
     "symbols": [],
@@ -21,12 +21,13 @@
     {
       "id": "AC1",
       "expected": "Observable expected result",
-      "evidence": "",
-      "status": "pending"
+      "status": "pending",
+      "evidence": []
     }
   ],
   "verification": {
     "commands": [],
+    "head_sha": null,
     "ci_run_id": null,
     "status": null
   },

@@ -9,30 +9,39 @@ description: Orchestrates an end-to-end GitHub-native code change on ChatGPT Web
 Complete one repository change with bounded context and evidence tied to the current GitHub head.
 
 ## Procedure
-1. Apply `session` first to restore project/task state.
-2. Classify the request as `feature`, `change`, `bug_fix`, `refactor`, or `hotfix`.
-3. If this is a new objective:
-   - create a branch using the configured `vibe/` prefix;
-   - build a task manifest from `templates/task.json`;
+1. Apply `session`.
+2. Classify the request as `feature`, `change`, `bug_fix`, `refactor`, `hotfix`, `test`, or `docs`.
+3. For a new objective:
+   - create a configured `vibe/` branch;
+   - create a schema-v2 task manifest;
    - open a PR early enough that its body becomes durable task state.
 4. Apply `plan`.
-5. Unless the user explicitly requested planning only, apply `build`.
+5. Unless planning-only, apply `build`.
 6. Apply `verify`.
 7. Apply `github-review`.
-8. Keep the PR task manifest synchronized when targets, context references, acceptance evidence, head SHA or verification status changes.
+8. Keep manifest paths/symbols/blob SHAs/head/verification synchronized.
 
-## Bug invariant
+## Mode intent
+- `test`: test-only/coverage work without production behavior change unless explicitly requested.
+- `docs`: README/docs/examples/metadata work with minimal code context.
+- other modes follow their normal behavior/compatibility semantics.
+
+## Invariants
+Bug:
 ```text
-REPRODUCE -> ROOT CAUSE -> FAILING REGRESSION TEST
--> MINIMAL FIX -> PASSING REGRESSION TEST -> AFFECTED CHECKS -> VERIFY
+REPRODUCE -> ROOT CAUSE -> REGRESSION TEST -> MINIMAL FIX -> AFFECTED CHECKS -> VERIFY
 ```
 
-## Refactor invariant
-Capture baseline behavior before structural edits. Discover reverse consumers, preserve public behavior/contracts, then verify against the current head.
+Refactor:
+```text
+BASELINE -> TARGET -> DIRECT CONSUMERS -> REFACTOR -> OLD-REFERENCE SEARCH -> VERIFY
+```
 
 ## Constraints
-- No task continuity may depend on chat memory.
-- Never use old CI as proof for a newer head SHA.
-- Never infer absence of impact from an empty static search.
+- No continuity may depend on chat memory.
+- Strictly use one schema-v2 manifest block per task PR.
+- Respect hard context budgets.
+- Never use old CI as proof for a newer head.
+- Never infer absence of impact from one empty static search.
 - Do not silently broaden scope.
-- Do not merge automatically unless the user has authorized merge or repository instructions explicitly permit it.
+- Do not merge without explicit authorization or repository rules that clearly authorize it.

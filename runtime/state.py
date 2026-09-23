@@ -6,8 +6,34 @@ from typing import Any, Mapping
 
 TASK_START = "<!-- gpt-web-vibe:task:start -->"
 TASK_END = "<!-- gpt-web-vibe:task:end -->"
-VALID_MODES = {"feature", "change", "bug_fix", "refactor", "hotfix"}
+TASK_SCHEMA_VERSION = 2
+
+VALID_MODES = {"feature", "change", "bug_fix", "refactor", "hotfix", "test", "docs"}
 VALID_STATUSES = {"planning", "building", "verifying", "blocked", "ready", "complete"}
+VALID_ACCEPTANCE_STATUSES = {"pending", "met", "failed", "unverified"}
+VALID_VERIFICATION_STATUSES = {None, "PASS_VERIFIED", "FAIL_VERIFICATION", "NEEDS_VERIFICATION_CONFIG"}
+VALID_OBSERVED_ROLES = {"target", "dependency", "consumer", "test", "config", "related"}
+
+DEFAULT_CONTEXT_LIMITS = {
+    "max_dependency_depth": 2,
+    "max_source_files": 15,
+    "max_test_files": 6,
+    "max_related_modules": 6,
+    "rebuild_changed_ratio": 0.5,
+}
+
+TASK_KEYS = {
+    "schema_version", "task_id", "mode", "status", "request",
+    "base_branch", "base_sha", "head_branch", "head_sha",
+    "targets", "context", "acceptance", "verification", "uncertainties",
+}
+CONTEXT_KEYS = {
+    "symbols", "dependencies", "consumers", "tests", "config_files", "observed_files",
+}
+OBSERVED_FILE_KEYS = {"path", "sha", "role", "depth", "symbols"}
+ACCEPTANCE_KEYS = {"id", "expected", "status", "evidence"}
+EVIDENCE_KEYS = {"type", "ref"}
+VERIFICATION_KEYS = {"commands", "head_sha", "ci_run_id", "status"}
 
 
 class ManifestError(ValueError):
@@ -19,46 +45,154 @@ def _require(condition: bool, message: str) -> None:
         raise ManifestError(message)
 
 
+def _require_string(value: Any, name: str, *, allow_empty: bool = False) -> None:
+    _require(isinstance(value, str), f"{name} must be a string")
+    if not allow_empty:
+        _require(bool(value.strip()), f"{name} is required")
+
+
+def _require_string_list(value: Any, name: str) -> None:
+    _require(isinstance(value, list), f"{name} must be a list")
+    for item in value:
+        _require_string(item, f"{name} item")
+
+
+def _reject_unknown_keys(data: Mapping[str, Any], allowed: set[str], name: str) -> None:
+    unknown = sorted(set(data) - allowed)
+    _require(not unknown, f"{name} contains unknown fields: {', '.join(unknown)}")
+
+
+def validate_vibe_config(data: Mapping[str, Any]) -> None:
+    _require(isinstance(data, Mapping), "config must be an object")
+    _require(data.get("version") in {1, 2}, "config version must be 1 or 2")
+    context = data.get("context")
+    _require(isinstance(context, Mapping), "config.context must be an object")
+    for key in ("max_dependency_depth", "max_source_files", "max_test_files", "max_related_modules"):
+        value = context.get(key, DEFAULT_CONTEXT_LIMITS[key])
+        _require(isinstance(value, int) and value >= 0, f"config.context.{key} must be a non-negative integer")
+    ratio = context.get("rebuild_changed_ratio", DEFAULT_CONTEXT_LIMITS["rebuild_changed_ratio"])
+    _require(isinstance(ratio, (int, float)) and 0 <= ratio <= 1, "config.context.rebuild_changed_ratio must be between 0 and 1")
+    verification = data.get("verification", {})
+    _require(isinstance(verification, Mapping), "config.verification must be an object")
+    _require_string_list(verification.get("commands", []), "config.verification.commands")
+
+
+def context_limits(config: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    result = dict(DEFAULT_CONTEXT_LIMITS)
+    if config is None:
+        return result
+    validate_vibe_config(config)
+    result.update(config.get("context", {}))
+    return result
+
+
 def validate_task_manifest(data: Mapping[str, Any]) -> None:
-    _require(data.get("schema_version") == 1, "task schema_version must be 1")
-    _require(isinstance(data.get("task_id"), str) and bool(data["task_id"].strip()), "task_id is required")
+    _require(isinstance(data, Mapping), "task manifest must be an object")
+    _reject_unknown_keys(data, TASK_KEYS, "task manifest")
+    _require(data.get("schema_version") == TASK_SCHEMA_VERSION, f"task schema_version must be {TASK_SCHEMA_VERSION}")
+    _require_string(data.get("task_id"), "task_id")
     _require(data.get("mode") in VALID_MODES, "invalid task mode")
     _require(data.get("status") in VALID_STATUSES, "invalid task status")
-    _require(isinstance(data.get("request"), str) and bool(data["request"].strip()), "request is required")
-    _require(isinstance(data.get("targets", []), list), "targets must be a list")
+    _require_string(data.get("request"), "request")
+    for key in ("base_branch", "base_sha", "head_branch", "head_sha"):
+        _require_string(data.get(key), key)
+    _require_string_list(data.get("targets"), "targets")
+
     context = data.get("context")
     _require(isinstance(context, Mapping), "context must be an object")
-    for key in ("dependencies", "consumers", "tests", "config_files", "observed_files"):
-        _require(isinstance(context.get(key, []), list), f"context.{key} must be a list")
-    for item in context.get("observed_files", []):
+    _reject_unknown_keys(context, CONTEXT_KEYS, "context")
+    for key in ("symbols", "dependencies", "consumers", "tests", "config_files"):
+        _require_string_list(context.get(key), f"context.{key}")
+
+    observed = context.get("observed_files")
+    _require(isinstance(observed, list), "context.observed_files must be a list")
+    observed_paths: set[str] = set()
+    for item in observed:
         _require(isinstance(item, Mapping), "observed file entries must be objects")
-        _require(isinstance(item.get("path"), str) and bool(item["path"]), "observed file path is required")
-        _require(isinstance(item.get("sha"), str) and bool(item["sha"]), "observed file sha is required")
-    acceptance = data.get("acceptance", [])
+        _reject_unknown_keys(item, OBSERVED_FILE_KEYS, "observed file")
+        _require_string(item.get("path"), "observed file path")
+        _require_string(item.get("sha"), "observed file sha")
+        _require(item.get("role") in VALID_OBSERVED_ROLES, "invalid observed file role")
+        _require(isinstance(item.get("depth"), int) and item["depth"] >= 0, "observed file depth must be a non-negative integer")
+        _require_string_list(item.get("symbols"), "observed file symbols")
+        _require(item["path"] not in observed_paths, f"duplicate observed file path: {item['path']}")
+        observed_paths.add(item["path"])
+
+    referenced_paths = set(data["targets"])
+    for key in ("dependencies", "consumers", "tests", "config_files"):
+        referenced_paths.update(context[key])
+    missing = sorted(referenced_paths - observed_paths)
+    _require(not missing, "referenced context files must appear in observed_files: " + ", ".join(missing))
+
+    acceptance = data.get("acceptance")
     _require(isinstance(acceptance, list), "acceptance must be a list")
     ids: set[str] = set()
     for item in acceptance:
         _require(isinstance(item, Mapping), "acceptance entries must be objects")
+        _reject_unknown_keys(item, ACCEPTANCE_KEYS, "acceptance entry")
         criterion_id = item.get("id")
-        _require(isinstance(criterion_id, str) and bool(criterion_id), "acceptance id is required")
+        _require_string(criterion_id, "acceptance id")
         _require(criterion_id not in ids, "acceptance ids must be unique")
         ids.add(criterion_id)
+        _require_string(item.get("expected"), f"acceptance {criterion_id} expected")
+        _require(item.get("status") in VALID_ACCEPTANCE_STATUSES, f"invalid acceptance status for {criterion_id}")
+        evidence = item.get("evidence")
+        _require(isinstance(evidence, list), f"acceptance {criterion_id} evidence must be a list")
+        for ev in evidence:
+            _require(isinstance(ev, Mapping), "acceptance evidence entries must be objects")
+            _reject_unknown_keys(ev, EVIDENCE_KEYS, "acceptance evidence")
+            _require_string(ev.get("type"), "acceptance evidence type")
+            _require_string(ev.get("ref"), "acceptance evidence ref")
+
+    verification = data.get("verification")
+    _require(isinstance(verification, Mapping), "verification must be an object")
+    _reject_unknown_keys(verification, VERIFICATION_KEYS, "verification")
+    _require_string_list(verification.get("commands"), "verification.commands")
+    verification_head = verification.get("head_sha")
+    _require(verification_head is None or (isinstance(verification_head, str) and bool(verification_head.strip())),
+             "verification.head_sha must be null or a non-empty string")
+    ci_run_id = verification.get("ci_run_id")
+    _require(ci_run_id is None or (isinstance(ci_run_id, int) and ci_run_id > 0),
+             "verification.ci_run_id must be null or a positive integer")
+    verification_status = verification.get("status")
+    _require(verification_status in VALID_VERIFICATION_STATUSES, "invalid verification status")
+    if verification_status == "PASS_VERIFIED":
+        _require(verification_head == data["head_sha"], "PASS_VERIFIED evidence must belong to current head_sha")
+
+    _require_string_list(data.get("uncertainties"), "uncertainties")
 
 
 def validate_project_context(data: Mapping[str, Any]) -> None:
     _require(data.get("schema_version") == 1, "project context schema_version must be 1")
     _require(isinstance(data.get("project"), Mapping), "project must be an object")
-    _require(isinstance(data.get("languages", []), list), "languages must be a list")
-    _require(isinstance(data.get("frameworks", []), list), "frameworks must be a list")
-    _require(isinstance(data.get("context_limits"), Mapping), "context_limits must be an object")
-    _require(isinstance(data.get("verification"), Mapping), "verification must be an object")
+    _require_string_list(data.get("languages", []), "languages")
+    _require_string_list(data.get("frameworks", []), "frameworks")
+    _require_string_list(data.get("entrypoints", []), "entrypoints")
+    primary = data.get("primary_language")
+    _require(primary is None or isinstance(primary, str), "primary_language must be a string or null")
+    limits = data.get("context_limits")
+    _require(isinstance(limits, Mapping), "context_limits must be an object")
+    for key in ("max_dependency_depth", "max_source_files", "max_test_files", "max_related_modules"):
+        value = limits.get(key)
+        _require(isinstance(value, int) and value >= 0, f"context_limits.{key} must be a non-negative integer")
+    verification = data.get("verification")
+    _require(isinstance(verification, Mapping), "verification must be an object")
+    _require_string_list(verification.get("commands", []), "verification.commands")
+    dependency_authority = data.get("dependency_authority")
+    _require(isinstance(dependency_authority, Mapping), "dependency_authority must be an object")
 
 
 def extract_task_manifest(body: str) -> dict[str, Any]:
+    start_count = body.count(TASK_START)
+    end_count = body.count(TASK_END)
+    if start_count != 1 or end_count != 1:
+        raise ManifestError(
+            f"task manifest block must appear exactly once (start={start_count}, end={end_count})"
+        )
     start = body.find(TASK_START)
     end = body.find(TASK_END)
-    if start < 0 or end < 0 or end <= start:
-        raise ManifestError("task manifest block not found")
+    if end <= start:
+        raise ManifestError("task manifest end marker must follow start marker")
     raw = body[start + len(TASK_START):end].strip()
     if raw.startswith("```json"):
         raw = raw[len("```json"):].strip()
@@ -77,49 +211,140 @@ def extract_task_manifest(body: str) -> dict[str, Any]:
 
 def render_task_manifest(body: str, manifest: Mapping[str, Any]) -> str:
     validate_task_manifest(manifest)
+    start_count = body.count(TASK_START)
+    end_count = body.count(TASK_END)
+    if start_count != end_count or start_count > 1:
+        raise ManifestError(
+            f"cannot render into body with duplicate/mismatched task markers (start={start_count}, end={end_count})"
+        )
     block = (
         f"{TASK_START}\n```json\n"
         + json.dumps(manifest, indent=2, sort_keys=True)
         + f"\n```\n{TASK_END}"
     )
-    start = body.find(TASK_START)
-    end = body.find(TASK_END)
-    if start >= 0 and end > start:
+    if start_count == 1:
+        start = body.find(TASK_START)
+        end = body.find(TASK_END, start)
+        if end <= start:
+            raise ManifestError("task manifest end marker must follow start marker")
         end += len(TASK_END)
         return body[:start].rstrip() + "\n\n" + block + body[end:]
     prefix = body.rstrip()
     return (prefix + "\n\n" if prefix else "") + block + "\n"
 
 
+def context_budget_violations(
+    manifest: Mapping[str, Any],
+    config: Mapping[str, Any] | None = None,
+) -> list[str]:
+    validate_task_manifest(manifest)
+    limits = context_limits(config)
+    observed = manifest["context"]["observed_files"]
+
+    source_paths = {
+        item["path"] for item in observed
+        if item["role"] in {"target", "dependency", "consumer", "config", "related"}
+    }
+    test_paths = {item["path"] for item in observed if item["role"] == "test"}
+    related_paths = {
+        item["path"] for item in observed
+        if item["role"] in {"dependency", "consumer", "related"}
+    }
+    max_depth = max((item["depth"] for item in observed), default=0)
+
+    violations: list[str] = []
+    if len(source_paths) > limits["max_source_files"]:
+        violations.append(
+            f"source files {len(source_paths)} exceed max_source_files={limits['max_source_files']}"
+        )
+    if len(test_paths) > limits["max_test_files"]:
+        violations.append(
+            f"test files {len(test_paths)} exceed max_test_files={limits['max_test_files']}"
+        )
+    if len(related_paths) > limits["max_related_modules"]:
+        violations.append(
+            f"related modules {len(related_paths)} exceed max_related_modules={limits['max_related_modules']}"
+        )
+    if max_depth > limits["max_dependency_depth"]:
+        violations.append(
+            f"dependency depth {max_depth} exceeds max_dependency_depth={limits['max_dependency_depth']}"
+        )
+    return violations
+
+
 def context_decision(
     manifest: Mapping[str, Any],
     current_shas: Mapping[str, str],
     *,
+    config: Mapping[str, Any] | None = None,
     scope_changed: bool = False,
     base_changed_materially: bool = False,
-    rebuild_ratio: float = 0.5,
 ) -> dict[str, Any]:
     validate_task_manifest(manifest)
+    violations = context_budget_violations(manifest, config)
+    if violations:
+        return {
+            "state": "CONTEXT_REBUILD",
+            "changed_files": [],
+            "reason": "context-budget-exceeded",
+            "violations": violations,
+        }
     if scope_changed:
         return {"state": "CONTEXT_REBUILD", "changed_files": [], "reason": "task-scope-changed"}
     if base_changed_materially:
         return {"state": "CONTEXT_REBUILD", "changed_files": [], "reason": "base-changed-materially"}
-    observed = manifest["context"].get("observed_files", [])
+
+    observed = manifest["context"]["observed_files"]
     if not observed:
         return {"state": "CONTEXT_REBUILD", "changed_files": [], "reason": "no-observed-files"}
+
     changed = [item["path"] for item in observed if current_shas.get(item["path"]) != item["sha"]]
     if not changed:
         return {"state": "CONTEXT_HIT", "changed_files": [], "reason": "observed-files-unchanged"}
+
+    limits = context_limits(config)
     ratio = len(changed) / len(observed)
-    if ratio > rebuild_ratio:
-        return {"state": "CONTEXT_REBUILD", "changed_files": sorted(changed), "reason": "too-many-observed-files-changed"}
-    return {"state": "CONTEXT_REFRESH", "changed_files": sorted(changed), "reason": "bounded-file-delta"}
+    if ratio > limits["rebuild_changed_ratio"]:
+        return {
+            "state": "CONTEXT_REBUILD",
+            "changed_files": sorted(changed),
+            "reason": "too-many-observed-files-changed",
+        }
+    return {
+        "state": "CONTEXT_REFRESH",
+        "changed_files": sorted(changed),
+        "reason": "bounded-file-delta",
+    }
 
 
-def update_observed_shas(manifest: Mapping[str, Any], current_shas: Mapping[str, str]) -> dict[str, Any]:
+def verification_is_current(manifest: Mapping[str, Any]) -> bool:
+    validate_task_manifest(manifest)
+    verification = manifest["verification"]
+    return (
+        verification["status"] == "PASS_VERIFIED"
+        and verification["head_sha"] == manifest["head_sha"]
+    )
+
+
+def update_observed_shas(
+    manifest: Mapping[str, Any],
+    current_shas: Mapping[str, str],
+) -> dict[str, Any]:
     result = deepcopy(dict(manifest))
-    for item in result["context"].get("observed_files", []):
+    for item in result["context"]["observed_files"]:
         if item["path"] in current_shas:
             item["sha"] = current_shas[item["path"]]
+    validate_task_manifest(result)
+    return result
+
+
+def update_manifest_head(manifest: Mapping[str, Any], head_sha: str) -> dict[str, Any]:
+    _require_string(head_sha, "head_sha")
+    result = deepcopy(dict(manifest))
+    result["head_sha"] = head_sha
+    verification = result["verification"]
+    if verification["head_sha"] != head_sha and verification["status"] == "PASS_VERIFIED":
+        verification["status"] = None
+        verification["ci_run_id"] = None
     validate_task_manifest(result)
     return result

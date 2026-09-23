@@ -13,9 +13,9 @@
   },
   "context_limits": {
     "max_dependency_depth": 2,
-    "max_source_files": 20,
-    "max_test_files": 10,
-    "max_related_modules": 8
+    "max_source_files": 15,
+    "max_test_files": 6,
+    "max_related_modules": 6
   },
   "dependency_authority": {
     "level": "advisory",

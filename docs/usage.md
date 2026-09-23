@@ -1,6 +1,8 @@
 # Using gpt-web-vibe-kit
 
-This guide explains how to use `gpt-web-vibe-kit` on **ChatGPT Web + GitHub** for common software-development tasks.
+This guide covers the normal coding workflows for `gpt-web-vibe-kit` on **ChatGPT Web + GitHub**.
+
+The kit is intentionally optimized for personal small/medium repositories. It does not require a local daemon, vector database, persistent checkout, LSP server or external context backend.
 
 Standard workflow:
 
@@ -8,9 +10,13 @@ Standard workflow:
 session -> plan -> build -> verify -> github-review
 ```
 
-The kit does not depend on old chat history. Durable state comes from the GitHub repository, task branch, pull request task manifest, current source, diff and current-head CI.
+Durable state comes from the repository and the task PR, not old chat history.
 
-## 1. Bootstrap an existing repository
+---
+
+## 1. First-time repository bootstrap
+
+Prompt:
 
 ```text
 @GitHub work with <owner>/<repo>.
@@ -18,13 +24,124 @@ The kit does not depend on old chat history. Durable state comes from the GitHub
 Use cuongtobi/gpt-web-vibe-kit.
 Read skills/bootstrap/SKILL.md and bootstrap this repository.
 
-Preserve an existing AGENTS.md.
-Detect the stack, frameworks, entrypoints and established test/lint/typecheck/build commands.
+Preserve any existing AGENTS.md.
+Detect the stack, frameworks, entrypoints and established verification commands.
 ```
 
-Bootstrap creates the small durable project contract under `.vibe/`.
+Bootstrap creates or updates:
 
-## 2. Build a new project
+```text
+AGENTS.md
+.vibe/config.json
+.vibe/project-context.json
+.vibe/README.md
+```
+
+The project context is intentionally small. It records routing facts, not source code.
+
+### Local bootstrap
+
+```bash
+python install.py --target /path/to/project
+python install.py --target /path/to/project --dry-run
+```
+
+The local installer performs lightweight detection from common manifests/files.
+
+---
+
+## 2. What a new session reads
+
+A normal session restores state in this order:
+
+```text
+AGENTS.md
+-> .vibe/config.json
+-> .vibe/project-context.json
+-> selected PR
+-> exactly one schema-v2 task manifest
+-> current diff
+-> observed blob SHA comparison
+-> hard-budget check
+-> CONTEXT_HIT / CONTEXT_REFRESH / CONTEXT_REBUILD
+-> bounded current files
+-> current-head CI/reviews
+```
+
+Do not paste an old chat transcript as the primary continuation mechanism.
+
+---
+
+## 3. Hard context budget
+
+The values in `.vibe/config.json` are hard limits, not suggestions.
+
+Default v2 limits:
+
+```json
+{
+  "max_dependency_depth": 2,
+  "max_source_files": 15,
+  "max_test_files": 6,
+  "max_related_modules": 6,
+  "rebuild_changed_ratio": 0.5,
+  "max_search_rounds": 3,
+  "max_symbol_hints": 24
+}
+```
+
+If a task cannot fit safely:
+
+1. reduce scope;
+2. split the task/PR;
+3. avoid loading unrelated code.
+
+Do not bypass the budget to make a task appear complete.
+
+---
+
+## 4. Iterative symbol-aware retrieval
+
+Planning uses GitHub search in bounded rounds.
+
+### Round 1: direct evidence
+
+Search exact or strong evidence:
+
+- error/trace text;
+- route/endpoint names;
+- config keys;
+- user-provided identifiers;
+- task keywords.
+
+### Round 2: symbols
+
+Read only promising files, then identify relevant:
+
+- functions;
+- classes;
+- types/interfaces;
+- constants;
+- modules/import specifiers.
+
+Persist high-confidence identifiers in `context.symbols`, then search them.
+
+### Round 3: direct neighborhood
+
+Search direct:
+
+- dependencies/imports/requires;
+- consumers/usages;
+- tests;
+- config/schema/API/framework registration.
+
+Stop as soon as the target and required neighborhood are clear.
+
+An empty search result does not prove there is no impact.
+
+---
+
+## 5. Create a new project
 
 ```text
 @GitHub work with <owner>/<repo>.
@@ -35,27 +152,28 @@ Build a new <project description>.
 Requirements:
 - ...
 - ...
-- ...
 
 Run the full vibe workflow.
 ```
 
-Flow:
+Typical flow:
 
 ```text
 requirements
--> project bootstrap
--> architecture plan
--> task branch + PR
+-> bootstrap project contract
+-> architecture/stack decisions
+-> branch + PR + schema-v2 manifest
 -> implementation
 -> tests/config/docs
--> CI
--> verify
+-> current-head verification
+-> review
 ```
 
-For greenfield work, initial context comes from requirements, stack decisions, manifests and generated structure. Once code exists, the task PR stores bounded target/test/dependency references for future sessions.
+Mode: `feature`.
 
-## 3. Add a feature
+---
+
+## 6. Add a feature
 
 ```text
 @GitHub work with <owner>/<repo>.
@@ -64,45 +182,47 @@ Use cuongtobi/gpt-web-vibe-kit.
 Add <feature>.
 
 Requirements:
-- preserve <existing contract>;
+- preserve <contract>;
 - add focused tests;
 - avoid new dependencies unless necessary.
 
-Run the full vibe workflow.
+Run the full workflow.
 ```
 
-Flow:
+Typical bounded context:
 
 ```text
-feature request
--> target discovery
--> dependencies
--> consumers/contracts
+request
+-> exact target
+-> public/data/config contracts
+-> direct dependencies
+-> direct consumers
 -> tests
--> plan
--> build
--> verify
 ```
 
-Search by routes, components, classes, functions, stable strings/error text and import usage, not filenames alone.
+Mode: `feature`.
 
-## 4. Change existing behavior
+---
+
+## 7. Change existing behavior
 
 Use mode `change`.
 
-The plan should explicitly separate:
+Plan:
 
 ```text
 current behavior
 -> desired behavior
--> compatibility contract
--> affected consumers
+-> compatibility requirements
+-> affected consumers/contracts
 -> tests
 ```
 
-Pay special attention to public APIs, configuration, persisted schemas, serialized data and backward compatibility.
+Pay special attention to APIs, configuration, persisted schemas, serialized data and backward compatibility.
 
-## 5. Fix a bug
+---
+
+## 8. Fix a bug
 
 ```text
 @GitHub work with <owner>/<repo>.
@@ -111,47 +231,53 @@ Use cuongtobi/gpt-web-vibe-kit.
 Fix:
 <symptom>.
 
-Reproduce the bug first.
-Find the root cause.
-Add a regression test.
-Apply the smallest root-cause fix.
-Run affected checks and full current-head verification.
+Required:
+reproduce/locate -> root cause -> regression test -> minimal fix -> affected checks -> verify.
 ```
 
-Required flow:
+Flow:
 
 ```text
-REPRODUCE
--> ROOT CAUSE
--> FAILING REGRESSION TEST
--> MINIMAL FIX
--> PASSING REGRESSION TEST
--> AFFECTED TESTS
--> VERIFY
+symptom/error
+-> candidate files
+-> relevant symbols
+-> target/root cause
+-> regression test
+-> minimal fix
+-> affected tests
+-> current-head verification
 ```
 
-Context normally expands from symptom/query -> matching symbol/file -> target -> dependencies -> consumers -> related tests.
+Mode: `bug_fix`.
 
-Do not fix based on an unproven guess.
+Do not fix a guessed root cause without evidence.
 
-## 6. Production hotfix
+---
+
+## 9. Production hotfix
 
 Use mode `hotfix`.
 
-Keep the patch minimal:
-- no opportunistic cleanup;
-- no unrelated rename;
-- no dependency upgrade unless required by the fault;
-- no unrelated refactor;
-- add regression coverage when feasible.
+Rules:
 
-## 7. Write tests for existing code
+- smallest safe patch;
+- no opportunistic cleanup;
+- no unrelated rename/refactor;
+- no dependency upgrade unless required;
+- regression coverage when feasible;
+- current-head verification before completion.
+
+---
+
+## 10. Test-only work
+
+Use mode `test`.
 
 ```text
 @GitHub work with <owner>/<repo>.
-Use gpt-web-vibe-kit.
+Use cuongtobi/gpt-web-vibe-kit.
 
-Add tests for <module>.
+Add tests for <module/behavior>.
 
 Cover:
 - happy path;
@@ -159,40 +285,96 @@ Cover:
 - important errors;
 - regression-prone edge cases.
 
+Use mode test.
 Do not change production behavior unless explicitly requested.
 ```
 
-If new tests expose a real bug outside scope, report it instead of silently changing production behavior.
+Context should focus on:
 
-## 8. Increase coverage
+```text
+production target
+-> current behavior/contract
+-> existing test harness/helpers
+-> relevant edge cases
+```
 
-Prioritize business-critical behavior, error paths, security boundaries and regression-prone code. Do not write tests whose only value is increasing a percentage.
+If tests expose an out-of-scope production bug, report it rather than silently fixing it.
 
-## 9. Refactor a function/class/module
+---
+
+## 11. Coverage improvement
+
+Still use mode `test`.
+
+Prioritize:
+
+1. business-critical behavior;
+2. security/error boundaries;
+3. regressions;
+4. complex branching.
+
+Do not write low-value tests only to raise a percentage.
+
+---
+
+## 12. Documentation-only work
+
+Use mode `docs`.
 
 ```text
 @GitHub work with <owner>/<repo>.
-Use gpt-web-vibe-kit.
+Use cuongtobi/gpt-web-vibe-kit.
+
+Update:
+<README/docs/API guide>.
+
+Use mode docs.
+Read source/config only where needed to verify documentation claims.
+Do not expand into unrelated code refactors.
+```
+
+Typical context:
+
+```text
+documentation target
+-> source/config that proves claims
+-> examples/links
+-> documentation checks/CI
+```
+
+This mode avoids unnecessary dependency expansion.
+
+---
+
+## 13. Refactor a function/class/module
+
+```text
+@GitHub work with <owner>/<repo>.
+Use cuongtobi/gpt-web-vibe-kit.
 
 Refactor <target>.
 Preserve behavior and public contracts.
 
 Before editing:
-- find dependencies and all discoverable direct consumers;
-- capture baseline behavior/tests;
+- find direct dependencies;
+- find all reasonably discoverable direct consumers;
+- capture baseline tests/behavior;
 - record invariants.
 
 After editing:
-- search for old references;
-- run affected tests and current-head CI.
+- search old references;
+- run affected checks;
+- verify current head.
 ```
+
+Mode: `refactor`.
 
 Flow:
 
 ```text
-target
--> dependencies
--> all discoverable consumers
+target symbol
+-> direct dependencies
+-> direct consumers
 -> tests/contracts
 -> baseline
 -> refactor
@@ -200,32 +382,44 @@ target
 -> verify unchanged behavior
 ```
 
-## 10. Large refactor
+---
 
-When a refactor spans many modules, first map public boundaries and consumer impact. Split the migration into reviewable PRs when one PR would be too broad.
+## 14. Large refactor
 
-Typical sequence:
+Do not bypass context limits. Split work when needed.
+
+Example:
 
 ```text
-PR1: introduce boundary
+PR1: introduce new boundary
 PR2: migrate consumers
 PR3: remove old implementation
 ```
 
-## 11. Rename a symbol/module/API
+Each PR gets its own schema-v2 manifest and verification evidence.
 
-Treat it as `refactor`.
+---
+
+## 15. Rename symbol/module/API
+
+Treat as `refactor`.
 
 Search:
-- imports/usages;
-- string references;
-- DI/registry/config references;
-- serialization/public docs when relevant;
+
+- symbol usages;
+- imports/requires;
+- strings/config/registry references;
+- framework wiring;
+- public docs;
 - tests.
 
-## 12. Add an API endpoint
+After editing, search the old symbol/path again.
 
-Typical bounded context:
+---
+
+## 16. Add an API endpoint
+
+Typical context:
 
 ```text
 route/controller
@@ -236,146 +430,332 @@ route/controller
 -> tests
 ```
 
-## 13. Database/schema migration
+Persist route/service/schema symbols when they are useful continuation anchors.
 
-Inspect model, migration, serializers/DTOs, API contracts, queries, existing-data compatibility and tests. Define a safe strategy for old rows/data.
+---
 
-## 14. Add a package
+## 17. Database/schema migration
 
-Before adding a package:
-- check whether the repo already has equivalent capability;
-- justify the new dependency;
-- verify compatibility;
+Inspect only the relevant bounded neighborhood:
+
+- model/schema;
+- migration;
+- serializer/DTO/API contract;
+- affected queries;
+- existing-data compatibility;
+- tests.
+
+Acceptance criteria should include behavior for existing data where relevant.
+
+---
+
+## 18. Add a package
+
+Before adding a dependency:
+
+- check whether existing code already solves the need;
+- justify the new package;
+- verify version compatibility;
 - update lockfiles;
-- add suitable verification.
+- run relevant tests/build;
+- document meaningful new configuration.
 
-## 15. Upgrade a dependency/framework
+Mode is usually `feature` or `change`.
+
+---
+
+## 19. Upgrade a dependency/framework
 
 Use mode `change`.
 
-Analyze relevant breaking changes, build an impact map, split migration steps when necessary, and run the broad affected test/build set.
+Analyze breaking changes relevant to this repository, not the entire upstream changelog. Build a bounded impact map and run broad enough affected checks.
 
-## 16. Frontend feature
+---
+
+## 20. Frontend feature
 
 Typical bounded context:
 
 ```text
 route/page
--> feature UI
+-> component
 -> hook/composable/store
 -> API/data layer
 -> tests
 ```
 
-For Next.js, Nuxt and SvelteKit, inspect server/client boundaries and framework-native routing.
+For Next.js/Nuxt/SvelteKit, inspect server/client boundaries and file-system routing.
 
-## 17. Frontend bug
+---
 
-Do not assume the visible component is the root cause. Check query cache, stores, mutation handling, stale props and server/client data boundaries.
+## 21. Frontend bug
 
-## 18. WordPress plugin/theme
+Do not assume the visible component is the root cause. Search state/cache/data-flow symbols and direct consumers before editing.
 
-Do not modify WordPress core. Inspect hooks/filters, REST routes, options/meta, template/block contracts, enqueue behavior and compatibility. Static hook wiring remains best-effort.
+Common areas:
 
-## 19. Rails/Laravel/Django/Nest and framework magic
+- query cache invalidation;
+- stores;
+- mutation handling;
+- stale props;
+- server/client boundaries.
 
-Do not rely only on static imports. Inspect framework registration, DI, routes, callbacks, autoloading and project-native tooling/tests.
+---
 
-## 20. Plan only
+## 22. WordPress theme/plugin
+
+Do not modify WordPress core.
+
+Inspect:
+
+- hooks/filters;
+- REST registration;
+- shortcodes/blocks;
+- options/meta;
+- templates;
+- enqueue behavior.
+
+Dynamic hook composition is advisory/static-best-effort; verify with project-native checks/manual integration where necessary.
+
+---
+
+## 23. Rails/Laravel/Django/Nest and framework magic
+
+Static imports are not enough. Use framework adapter hints and inspect routes, DI/providers, callbacks, autoloading/registries and native tests.
+
+---
+
+## 24. Plan only
 
 ```text
 @GitHub work with <owner>/<repo>.
-Use gpt-web-vibe-kit.
+Use cuongtobi/gpt-web-vibe-kit.
 
 PLAN ONLY. Do not edit code.
 
-Analyze:
-<task>
+Task:
+<description>
 ```
 
-Workflow stops after `session -> plan`.
+Run:
 
-## 21. Review a PR
+```text
+session -> plan
+```
+
+The PR manifest may remain in `planning`.
+
+---
+
+## 25. Verify only
+
+```text
+@GitHub work with PR #<number> in <owner>/<repo>.
+Use cuongtobi/gpt-web-vibe-kit.
+
+Run only verify + github-review.
+Compare acceptance criteria with the final diff and current-head CI.
+```
+
+Statuses:
+
+- `PASS_VERIFIED`
+- `FAIL_VERIFICATION`
+- `NEEDS_VERIFICATION_CONFIG`
+
+---
+
+## 26. Review an existing PR
 
 ```text
 @GitHub review PR #42 in <owner>/<repo>.
 Use gpt-web-vibe-kit/skills/github-review/SKILL.md.
 
 Check:
-- task-manifest scope;
-- bugs/regressions;
+- exactly one valid schema-v2 manifest;
+- manifest head matches PR head;
+- context fits hard budget;
+- scope/compatibility;
 - missing consumers;
-- compatibility;
 - tests;
 - unresolved review threads;
 - current-head CI.
 ```
 
-A new PR head makes previous review evidence stale for changed code.
+---
 
-## 22. Verify only
-
-```text
-@GitHub work with PR #42 in <owner>/<repo>.
-Use gpt-web-vibe-kit.
-
-Run only verify + github-review.
-Compare acceptance criteria against the final diff and current-head CI.
-```
-
-Possible status:
-- `PASS_VERIFIED`
-- `FAIL_VERIFICATION`
-- `NEEDS_VERIFICATION_CONFIG`
-
-## 23. Continue in a new ChatGPT session
+## 27. Continue in a new ChatGPT session
 
 ```text
 @GitHub continue PR #42 in <owner>/<repo>.
 Use cuongtobi/gpt-web-vibe-kit.
-
-Restore context from the PR task manifest before continuing.
-```
-
-Flow:
-
-```text
-project context
--> PR manifest
--> current head
--> compare observed blob SHAs
--> CONTEXT_HIT / CONTEXT_REFRESH / CONTEXT_REBUILD
--> fetch bounded current code
--> continue
+Restore context from the schema-v2 task manifest before continuing.
 ```
 
 No old chat transcript is required.
 
-## 24. Continue when the PR number is unknown
+---
 
-Ask ChatGPT to find the open vibe PR matching task title, branch, request or task_id. If several candidates remain, list them instead of guessing.
+## 28. PR number is unknown
 
-## 25. Code changed between sessions
+Ask ChatGPT to find the open vibe PR matching:
 
-Stored blob SHAs are compared with the current branch:
+- task ID;
+- branch;
+- title;
+- request.
 
-- `CONTEXT_HIT`: relevant references unchanged.
-- `CONTEXT_REFRESH`: refresh a bounded changed subset and its neighborhood.
-- `CONTEXT_REBUILD`: scope/baseline changed materially or too much of the observed context changed.
+If multiple candidates remain, list them instead of guessing.
 
-## 26. Branch was rebased
+---
 
-Re-evaluate context and impact before continuing. If rebase materially changes target/dependency relationships, rebuild bounded context.
+## 29. `CONTEXT_HIT`
 
-## 27. CI failure
+Use when the unique v2 manifest is valid, budget-compliant and observed blob SHAs are unchanged.
 
-Inspect failed job -> failed step -> logs -> root cause. Make a scoped fix, then verify the new head. Old CI becomes stale immediately after the head changes.
+Fetch only the current files needed for the immediate next step.
 
-## 28. Repository has no meaningful checks
+---
 
-Return `NEEDS_VERIFICATION_CONFIG`. Add stack-appropriate tests, lint, typecheck, build or smoke verification instead of using a no-op command.
+## 30. `CONTEXT_REFRESH`
 
-## 29. Merge
+Use when a bounded minority of observed files changed.
+
+Refresh changed files and only their directly necessary relationships, then update blob SHAs/symbols/depths.
+
+---
+
+## 31. `CONTEXT_REBUILD`
+
+Use when:
+
+- manifest is missing/duplicated/invalid/v1;
+- task scope materially changed;
+- base/rebase invalidated the prior neighborhood;
+- too many observed files changed;
+- context exceeds hard limits;
+- old targets are no longer relevant.
+
+A rebuild remains bounded. It does not mean loading the whole repository.
+
+---
+
+## 32. Rebase or base branch changed
+
+Re-evaluate target/dependency/consumer relationships. If the baseline changed materially, use `CONTEXT_REBUILD`.
+
+---
+
+## 33. CI failure
+
+Flow:
+
+```text
+failed run
+-> failed job
+-> failed step/log
+-> root cause
+-> scoped fix
+-> new head
+-> old PASS/CI stale
+-> verify new head
+```
+
+Do not rerun blindly when the failure is deterministic and actionable.
+
+---
+
+## 34. Repository has no meaningful checks
+
+Use:
+
+```text
+NEEDS_VERIFICATION_CONFIG
+```
+
+Do not add a no-op command to manufacture a pass. Establish a stack-appropriate test/lint/typecheck/build/smoke check when task scope permits.
+
+---
+
+## 35. Verification head binding
+
+Manifest stores:
+
+```json
+{
+  "head_sha": "abc123",
+  "verification": {
+    "head_sha": "abc123",
+    "ci_run_id": 123456,
+    "status": "PASS_VERIFIED"
+  }
+}
+```
+
+PASS is valid only when both SHAs also match the actual current PR head.
+
+Any new commit makes old pass evidence stale.
+
+---
+
+## 36. Acceptance evidence
+
+Each criterion uses structured evidence:
+
+```json
+{
+  "id": "AC1",
+  "expected": "Refresh succeeds after access expiry.",
+  "status": "met",
+  "evidence": [
+    {
+      "type": "test",
+      "ref": "tests/test_auth.py::test_refresh_after_expiry"
+    },
+    {
+      "type": "ci",
+      "ref": "run:123456"
+    }
+  ]
+}
+```
+
+Do not mark a criterion met based on unsupported prose.
+
+---
+
+## 37. Schema-v1 PR migration
+
+Schema v1 is not normal continuation state in v2.
+
+For an old active PR:
+
+1. read current base/head/diff;
+2. rebuild the bounded neighborhood;
+3. add `context.symbols`;
+4. add observed `role`, `depth`, `symbols`;
+5. convert acceptance evidence to structured lists;
+6. add `verification.head_sha`;
+7. replace the old block with exactly one v2 block;
+8. verify against current head before claiming PASS.
+
+---
+
+## 38. Concurrent tasks
+
+Use one branch + PR per real task:
+
+```text
+PR #41 feature
+PR #42 bug fix
+PR #43 docs
+```
+
+There is no shared `current-task.json`.
+
+---
+
+## 39. Merge
 
 The kit does not merge by default.
 
@@ -385,9 +765,9 @@ If the current head is PASS_VERIFIED and there are no blockers,
 squash merge it into main.
 ```
 
-## 30. Concurrent tasks
+Merge only with explicit authorization or repository instructions that clearly authorize it.
 
-Use one branch + PR per task. Task state is isolated in each PR body; feature, bug-fix and refactor work can proceed independently.
+---
 
 # Recommended prompt templates
 
@@ -405,6 +785,7 @@ Requirements:
 - ...
 - ...
 
+Respect the repository hard context budget.
 Do not expand scope.
 Only consider the task complete with current-head verification.
 ```
@@ -419,7 +800,8 @@ Fix:
 <symptom>
 
 Required:
-reproduce -> root cause -> regression test -> minimal fix -> affected checks -> verify.
+reproduce/locate -> root cause -> regression test -> minimal fix -> affected checks -> verify.
+Use iterative symbol-aware search and keep context bounded.
 ```
 
 ## Refactor
@@ -432,10 +814,10 @@ Refactor:
 <target>
 
 Preserve behavior/public contracts.
-Find dependencies and direct consumers.
-Capture baseline before editing.
+Find direct dependencies and consumers.
+Capture baseline.
 Search old references after editing.
-Verify the current head.
+Verify current head.
 ```
 
 ## Test-only
@@ -443,6 +825,8 @@ Verify the current head.
 ```text
 @GitHub work with <owner>/<repo>.
 Use cuongtobi/gpt-web-vibe-kit.
+
+Mode: test
 
 Add tests for:
 <module/feature>
@@ -453,12 +837,26 @@ Cover:
 Do not change production behavior unless requested.
 ```
 
+## Docs-only
+
+```text
+@GitHub work with <owner>/<repo>.
+Use cuongtobi/gpt-web-vibe-kit.
+
+Mode: docs
+
+Update:
+<README/docs>
+
+Use only the code/config context needed to verify documentation claims.
+```
+
 ## Continue
 
 ```text
 @GitHub continue PR #<number> in <owner>/<repo>.
 Use cuongtobi/gpt-web-vibe-kit.
-Restore context from the PR manifest and continue.
+Restore the strict v2 manifest, check budget/blob SHAs, then continue.
 ```
 
 ## Plan only
@@ -480,8 +878,10 @@ Task:
 Use cuongtobi/gpt-web-vibe-kit.
 
 Run only verify + github-review.
-Compare acceptance criteria with the current-head diff and CI.
+Require verification.head_sha to match the current PR head.
 ```
+
+---
 
 # Mode selection
 
@@ -490,19 +890,24 @@ Compare acceptance criteria with the current-head diff and CI.
 | New project/feature | `feature` |
 | Existing behavior/compatibility change | `change` |
 | Defect correction | `bug_fix` |
-| Structural change with preserved behavior | `refactor` |
+| Structural change preserving behavior | `refactor` |
 | Urgent minimal production fix | `hotfix` |
-| Test-only work | test-only task; normally no production behavior change |
+| Test/coverage-only work | `test` |
+| README/docs/examples/metadata | `docs` |
 
-# Core operating rules
+---
 
-1. One real task should normally use one PR.
-2. Continue sessions from the PR, not pasted chat history.
-3. Persist references, not source copies.
-4. Current GitHub code outranks historical manifest data.
-5. Static dependency evidence is advisory.
-6. Bugs require root-cause evidence before fixes.
-7. Refactors require consumer discovery and baseline behavior.
-8. Verification must belong to the current head SHA.
-9. A new head makes old CI/review evidence stale.
-10. Missing meaningful checks means `NEEDS_VERIFICATION_CONFIG`, never a fake pass.
+# Core rules
+
+1. One real task normally uses one PR.
+2. Continue from GitHub state, not pasted chat history.
+3. Require exactly one strict schema-v2 manifest block.
+4. Persist references/symbols/blob SHAs, never source copies.
+5. Respect hard context limits.
+6. Use iterative symbol-aware retrieval instead of filename-only search.
+7. Static dependency evidence is advisory.
+8. Bugs require evidence-supported root cause.
+9. Refactors require consumer discovery and baseline behavior.
+10. `PASS_VERIFIED` must belong to the current head SHA.
+11. New commits invalidate old PASS evidence.
+12. Missing meaningful checks means `NEEDS_VERIFICATION_CONFIG`, not a fake pass.

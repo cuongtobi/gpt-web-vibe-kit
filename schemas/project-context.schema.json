@@ -2,16 +2,126 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "GPT Web Vibe Project Context",
   "type": "object",
-  "required": ["schema_version", "project", "languages", "frameworks", "entrypoints", "verification", "context_limits", "dependency_authority"],
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "project",
+    "languages",
+    "primary_language",
+    "frameworks",
+    "entrypoints",
+    "verification",
+    "context_limits",
+    "dependency_authority"
+  ],
   "properties": {
-    "schema_version": {"const": 1},
-    "project": {"type": "object"},
-    "languages": {"type": "array", "items": {"type": "string"}},
-    "primary_language": {"type": ["string", "null"]},
-    "frameworks": {"type": "array", "items": {"type": "string"}},
-    "entrypoints": {"type": "array", "items": {"type": "string"}},
-    "verification": {"type": "object"},
-    "context_limits": {"type": "object"},
-    "dependency_authority": {"type": "object"}
+    "schema_version": {
+      "const": 1
+    },
+    "project": {
+      "type": "object",
+      "required": [
+        "name",
+        "summary"
+      ],
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "primary_language": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "frameworks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "entrypoints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "verification": {
+      "type": "object",
+      "required": [
+        "commands"
+      ],
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "context_limits": {
+      "type": "object",
+      "required": [
+        "max_dependency_depth",
+        "max_source_files",
+        "max_test_files",
+        "max_related_modules"
+      ],
+      "properties": {
+        "max_dependency_depth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_source_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_test_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_related_modules": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "dependency_authority": {
+      "type": "object",
+      "required": [
+        "level",
+        "model"
+      ],
+      "properties": {
+        "level": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        }
+      }
+    }
   }
 }

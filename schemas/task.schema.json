@@ -1,16 +1,278 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "GPT Web Vibe Task Manifest",
+  "title": "GPT Web Vibe Task Manifest v2",
   "type": "object",
-  "required": ["schema_version", "task_id", "mode", "status", "request", "targets", "context", "acceptance"],
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "task_id",
+    "mode",
+    "status",
+    "request",
+    "base_branch",
+    "base_sha",
+    "head_branch",
+    "head_sha",
+    "targets",
+    "context",
+    "acceptance",
+    "verification",
+    "uncertainties"
+  ],
   "properties": {
-    "schema_version": {"const": 1},
-    "task_id": {"type": "string", "minLength": 1},
-    "mode": {"enum": ["feature", "change", "bug_fix", "refactor", "hotfix"]},
-    "status": {"enum": ["planning", "building", "verifying", "blocked", "ready", "complete"]},
-    "request": {"type": "string", "minLength": 1},
-    "targets": {"type": "array", "items": {"type": "string"}},
-    "context": {"type": "object"},
-    "acceptance": {"type": "array"}
+    "schema_version": {
+      "const": 2
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mode": {
+      "enum": [
+        "feature",
+        "change",
+        "bug_fix",
+        "refactor",
+        "hotfix",
+        "test",
+        "docs"
+      ]
+    },
+    "status": {
+      "enum": [
+        "planning",
+        "building",
+        "verifying",
+        "blocked",
+        "ready",
+        "complete"
+      ]
+    },
+    "request": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_branch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_sha": {
+      "type": "string",
+      "minLength": 1
+    },
+    "head_branch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "head_sha": {
+      "type": "string",
+      "minLength": 1
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "symbols",
+        "dependencies",
+        "consumers",
+        "tests",
+        "config_files",
+        "observed_files"
+      ],
+      "properties": {
+        "symbols": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "consumers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "tests": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "config_files": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "observed_files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha",
+              "role",
+              "depth",
+              "symbols"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sha": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "enum": [
+                  "target",
+                  "dependency",
+                  "consumer",
+                  "test",
+                  "config",
+                  "related"
+                ]
+              },
+              "depth": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "symbols": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "acceptance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "expected",
+          "status",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "met",
+              "failed",
+              "unverified"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "ref"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ref": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commands",
+        "head_sha",
+        "ci_run_id",
+        "status"
+      ],
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "head_sha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ci_run_id": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "status": {
+          "enum": [
+            "PASS_VERIFIED",
+            "FAIL_VERIFICATION",
+            "NEEDS_VERIFICATION_CONFIG",
+            null
+          ]
+        }
+      }
+    },
+    "uncertainties": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
   }
 }

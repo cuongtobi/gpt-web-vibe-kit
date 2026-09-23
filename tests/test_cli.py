@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 import unittest
@@ -8,21 +9,36 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class CliTests(unittest.TestCase):
-    def test_direct_cli_validates_project_context(self):
-        result = subprocess.run(
-            [
-                sys.executable,
-                str(ROOT / "runtime" / "vibe_web.py"),
-                "validate-project",
-                str(ROOT / "templates" / "project" / ".vibe" / "project-context.json"),
-            ],
+    def run_cli(self, *args):
+        return subprocess.run(
+            [sys.executable, str(ROOT / "runtime" / "vibe_web.py"), *args],
             cwd=str(ROOT),
             capture_output=True,
             text=True,
             check=False,
         )
+
+    def test_direct_cli_validates_project_context(self):
+        result = self.run_cli(
+            "validate-project",
+            str(ROOT / "templates" / "project" / ".vibe" / "project-context.json"),
+        )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(result.stdout.strip(), "OK")
+
+    def test_direct_cli_validates_config(self):
+        result = self.run_cli(
+            "validate-config",
+            str(ROOT / "templates" / "project" / ".vibe" / "config.json"),
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.strip(), "OK")
+
+    def test_detect_project_cli(self):
+        result = self.run_cli("detect-project", str(ROOT / "tests" / "fixtures" / "fastapi-small"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        data = json.loads(result.stdout)
+        self.assertIn("fastapi", data["frameworks"])
 
 
 if __name__ == "__main__":

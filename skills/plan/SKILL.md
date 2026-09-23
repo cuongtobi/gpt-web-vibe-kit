@@ -1,60 +1,72 @@
 ---
 name: plan
-description: Discovers bounded target, dependency, consumer and test context and records an evidence-mapped implementation plan in the task PR.
+description: Discovers a bounded symbol-aware target/dependency/consumer/test neighborhood and records an evidence-mapped plan in the task PR.
 ---
 
 # Plan
 
 ## Goal
-Find the smallest safe change and persist enough references for another ChatGPT Web session to resume.
+Find the smallest safe change and persist enough current references for another ChatGPT Web session to resume.
 
-## New task discovery
-1. Read project context and the user request.
-2. Search for request keywords, identifiers, error messages and likely file names.
-3. Fetch only promising files.
-4. Identify exact target symbols/files.
-5. Expand a bounded neighborhood:
-   - imports/requires used by the target;
-   - direct consumers/usages of target symbols/modules;
-   - related tests;
-   - config/schema/API/framework contracts.
-6. Record each loaded source reference in `context.observed_files` with current GitHub blob SHA.
+## Iterative symbol-aware retrieval
+Use GitHub search in bounded rounds; do not rely on filenames alone.
 
-If retrieval misses a target, use another scoped search. Do not conclude "no impact" merely because one search returned no results.
+### Round 1 — direct evidence
+Search exact:
+- error/trace text;
+- route/API/config keys;
+- user-provided identifiers;
+- strong request keywords.
+
+Fetch only promising files.
+
+### Round 2 — symbol expansion
+From fetched candidates:
+1. identify relevant classes/functions/types/constants/modules;
+2. add high-confidence identifiers to `context.symbols`;
+3. search those symbols and import/module specifiers;
+4. identify the exact target.
+
+### Round 3 — neighborhood expansion
+Search:
+- imports/requires used by the target;
+- direct consumers/usages of target symbols/modules;
+- related tests;
+- config/schema/API/framework registrations.
+
+Stop earlier when the target and required neighborhood are clear. Respect `max_search_rounds`, `max_symbol_hints` and every hard context budget in `.vibe/config.json`.
+
+If one scoped search returns no result, try another evidence-supported term. An empty search never proves no impact.
+
+## Persisted task context
+For every loaded task-relevant file, persist:
+- current path;
+- current GitHub blob SHA;
+- primary `role`;
+- discovery `depth`;
+- relevant `symbols`.
+
+Also persist the task-wide high-confidence identifiers in `context.symbols`. Do not store source copies or speculative symbols.
 
 ## By mode
 
-### bug_fix
-- reproduce/locate the symptom when possible;
-- trace to evidence-supported root cause;
-- identify or plan a regression test;
-- include nearby consumer/test impact.
+### `bug_fix`
+symptom -> reproduce/locate -> target/root cause -> regression test -> smallest fix.
 
-### refactor
-- target is usually explicit;
-- discover all reasonably findable direct consumers;
-- capture baseline behavior/checks before changing structure;
-- list invariants that must remain unchanged.
+### `refactor`
+explicit target -> all reasonably findable direct consumers -> tests/contracts -> baseline invariants.
 
-### feature/change
-- record desired behavior and compatibility constraints;
-- identify affected public/config/data contracts.
+### `feature` / `change`
+desired behavior -> public/config/data contracts -> implementation neighborhood -> tests.
 
-## Acceptance criteria
-Assign stable IDs such as AC1. Each criterion must state an observable expected result and feasible evidence. Use `unverified` rather than inventing evidence.
+### `test`
+focus on production target + existing test harness + edge cases. Do not change production behavior unless requested or a separately scoped bug is accepted.
 
-## PR manifest update
-Set:
-- mode/request/status;
-- targets/symbols;
-- dependencies;
-- consumers;
-- tests/config files;
-- observed file SHAs;
-- acceptance criteria;
-- uncertainty.
+### `docs`
+focus on documentation targets and source/config needed to verify claims. Avoid code dependency expansion that is irrelevant to documentation.
 
-The manifest is routing state, not a place to paste source code.
+## Acceptance
+Use stable IDs such as AC1. Each criterion contains an observable expected result, status and structured evidence list. Use `unverified`/empty evidence until real evidence exists.
 
 ## Output
-Summarize target files/symbols, dependency/consumer neighborhood, tests, ordered implementation steps, verification evidence and known uncertainty.
+Summarize targets/symbols, bounded neighborhood, budget usage, ordered steps, verification plan and uncertainties.

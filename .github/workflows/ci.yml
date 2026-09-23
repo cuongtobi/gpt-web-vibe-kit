@@ -18,6 +18,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Compile
-        run: python -m py_compile install.py runtime/state.py runtime/vibe_web.py
+        run: python -m py_compile install.py runtime/state.py runtime/retrieval.py runtime/vibe_web.py
       - name: Tests
         run: python -m unittest discover -s tests -v

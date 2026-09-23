@@ -1,6 +1,8 @@
 # Hướng dẫn sử dụng gpt-web-vibe-kit
 
-Tài liệu này mô tả cách dùng `gpt-web-vibe-kit` trên **ChatGPT Web + GitHub** cho các tình huống coding phổ biến.
+Tài liệu này mô tả đầy đủ cách dùng `gpt-web-vibe-kit` trên **ChatGPT Web + GitHub** cho project cá nhân vừa và nhỏ.
+
+Kit không cần daemon local, vector database, persistent checkout, LSP server hay backend context riêng.
 
 Workflow chuẩn:
 
@@ -8,13 +10,11 @@ Workflow chuẩn:
 session -> plan -> build -> verify -> github-review
 ```
 
-Kit không phụ thuộc vào chat history. Mỗi task dùng GitHub repository + branch + pull request + task manifest + CI làm nguồn trạng thái bền vững.
+Durable state nằm trong repository và task PR, không nằm trong chat history.
 
 ---
 
-## 1. Chuẩn bị một repository để dùng kit
-
-### Repository đã có code
+## 1. Bootstrap repository lần đầu
 
 Prompt:
 
@@ -22,406 +22,371 @@ Prompt:
 @GitHub làm việc với repo <owner>/<repo>.
 
 Sử dụng cuongtobi/gpt-web-vibe-kit.
-Đọc skills/bootstrap/SKILL.md và bootstrap repo này để dùng workflow của kit.
+Đọc skills/bootstrap/SKILL.md và bootstrap repo này.
 
-Không overwrite AGENTS.md nếu repo đã có.
-Phân tích stack, framework, entrypoint và các command test/lint/typecheck/build hiện có.
+Giữ nguyên AGENTS.md nếu đã có.
+Detect stack, framework, entrypoint và verification command hiện có.
 ```
 
-ChatGPT phải:
-
-1. đọc repo hiện tại;
-2. giữ nguyên `AGENTS.md` nếu đã tồn tại;
-3. tạo `.vibe/config.json`, `.vibe/project-context.json`, `.vibe/README.md`;
-4. ghi lại languages, primary language, frameworks, entrypoints, verification commands và context limits;
-5. commit thay đổi qua branch/PR phù hợp.
-
-### Repository trống
+Bootstrap tạo/cập nhật:
 
 ```text
-@GitHub làm việc với repo <owner>/<repo>.
-
-Sử dụng cuongtobi/gpt-web-vibe-kit để bootstrap repo mới.
-
-Project:
-<mô tả project>
-
-Tech stack:
-<stack nếu đã biết>
+AGENTS.md
+.vibe/config.json
+.vibe/project-context.json
+.vibe/README.md
 ```
 
-Project contract được tạo trước, sau đó task build project chạy theo workflow `vibe`.
+Project context chỉ chứa routing metadata nhỏ, không cache source.
+
+### Bootstrap local
+
+```bash
+python install.py --target /path/to/project
+python install.py --target /path/to/project --dry-run
+```
+
+Installer local dùng heuristic nhẹ từ manifest/file phổ biến.
 
 ---
 
-## 2. Build dự án mới từ đầu
+## 2. Session mới đọc gì
 
-Ví dụ:
+Thứ tự restore chuẩn:
 
 ```text
-@GitHub làm việc với repo cuongtobi/sample-fastapi.
+AGENTS.md
+-> .vibe/config.json
+-> .vibe/project-context.json
+-> PR được chọn
+-> đúng một schema-v2 task manifest
+-> current diff
+-> compare observed blob SHA
+-> hard-budget check
+-> CONTEXT_HIT / CONTEXT_REFRESH / CONTEXT_REBUILD
+-> bounded current files
+-> current-head CI/reviews
+```
 
+Không dùng việc paste lại chat cũ làm cơ chế continuation chính.
+
+---
+
+## 3. Hard context budget
+
+Các giá trị trong `.vibe/config.json` là giới hạn bắt buộc.
+
+Mặc định v2:
+
+```json
+{
+  "max_dependency_depth": 2,
+  "max_source_files": 15,
+  "max_test_files": 6,
+  "max_related_modules": 6,
+  "rebuild_changed_ratio": 0.5,
+  "max_search_rounds": 3,
+  "max_symbol_hints": 24
+}
+```
+
+Nếu task không fit an toàn:
+
+1. giảm scope;
+2. chia task/PR;
+3. không load code không liên quan.
+
+Không bypass budget chỉ để hoàn tất task.
+
+---
+
+## 4. Iterative symbol-aware retrieval
+
+`plan` search GitHub theo các vòng có giới hạn.
+
+### Vòng 1: direct evidence
+
+Search:
+
+- error/trace text;
+- route/endpoint;
+- config key;
+- identifier user cung cấp;
+- keyword mạnh từ task.
+
+### Vòng 2: symbols
+
+Chỉ đọc candidate hứa hẹn, sau đó lấy các identifier liên quan:
+
+- function;
+- class;
+- type/interface;
+- constant;
+- module/import specifier.
+
+Lưu high-confidence identifier vào `context.symbols`, rồi search tiếp các symbol này.
+
+### Vòng 3: direct neighborhood
+
+Search:
+
+- dependency/import/require;
+- consumer/usage;
+- test;
+- config/schema/API/framework registration.
+
+Dừng sớm nếu target và neighborhood cần thiết đã rõ.
+
+Một search rỗng không chứng minh rằng không có impact.
+
+---
+
+## 5. Build project mới
+
+```text
+@GitHub làm việc với repo <owner>/<repo>.
 Sử dụng cuongtobi/gpt-web-vibe-kit.
 
-Build một REST API quản lý task bằng FastAPI + PostgreSQL.
+Build một <mô tả project>.
 
 Yêu cầu:
-- CRUD task;
-- validation bằng Pydantic;
-- SQLAlchemy;
-- migration;
-- pytest;
-- Ruff;
-- cấu trúc dễ mở rộng;
-- README chạy local.
+- ...
+- ...
 
-Chạy toàn bộ workflow vibe.
+Chạy full vibe workflow.
 ```
 
 Flow:
 
 ```text
-new project request
-      ↓
-bootstrap project context
-      ↓
-plan architecture
-      ↓
-create task branch + PR
-      ↓
-build initial structure
-      ↓
-tests/config/docs
-      ↓
-CI
-      ↓
-verify
-      ↓
-ready
+requirements
+-> bootstrap contract
+-> architecture/stack
+-> branch + PR + schema-v2 manifest
+-> implementation
+-> tests/config/docs
+-> current-head verification
+-> review
 ```
 
-Plan phải xác định:
-
-- stack;
-- framework-native structure;
-- entrypoints;
-- package/dependency setup;
-- database/config boundaries;
-- test strategy;
-- acceptance criteria;
-- CI commands.
-
-Với project mới, context ban đầu đến từ:
-
-```text
-user requirements
-+ chosen stack
-+ generated project structure
-+ config/manifests
-```
-
-Sau khi code được tạo, PR manifest bắt đầu lưu target, test và dependency reference quan trọng để session sau tiếp tục.
+Mode: `feature`.
 
 ---
 
-## 3. Thêm chức năng mới
-
-```text
-@GitHub làm việc với repo <owner>/<repo>.
-
-Sử dụng cuongtobi/gpt-web-vibe-kit.
-
-Thêm chức năng export báo cáo ra CSV.
-
-Yêu cầu:
-- giữ nguyên API hiện tại;
-- export các field đang hiển thị trong report;
-- có test;
-- không thêm dependency mới nếu không cần.
-
-Chạy workflow vibe đầy đủ.
-```
-
-Flow:
-
-```text
-feature request
-   ↓
-restore project/session context
-   ↓
-search entrypoint liên quan
-   ↓
-find target modules
-   ↓
-dependencies
-   ↓
-consumers/contracts
-   ↓
-tests
-   ↓
-plan
-   ↓
-build
-   ↓
-verify
-```
-
-ChatGPT nên tìm bằng route, component, class, function, error/string và import usage, không chỉ dựa vào filename.
-
----
-
-## 4. Thay đổi behavior hiện có
-
-Mode: `change`.
-
-Ví dụ:
+## 6. Thêm chức năng mới
 
 ```text
 @GitHub làm việc với repo <owner>/<repo>.
 Sử dụng cuongtobi/gpt-web-vibe-kit.
 
-Thay trailing stop từ fixed points sang hỗ trợ cả fixed points và percentage.
+Thêm <feature>.
 
 Yêu cầu:
-- config cũ vẫn hoạt động;
-- percentage là optional;
-- không phá persisted config cũ;
-- có compatibility test.
+- giữ <contract>;
+- có focused tests;
+- không thêm dependency nếu không cần.
+
+Chạy full workflow.
 ```
 
-Plan phải phân biệt:
+Context:
+
+```text
+request
+-> exact target
+-> public/data/config contracts
+-> direct dependencies
+-> direct consumers
+-> tests
+```
+
+Mode: `feature`.
+
+---
+
+## 7. Thay đổi behavior hiện có
+
+Dùng mode `change`.
+
+Plan:
 
 ```text
 current behavior
-→ desired behavior
-→ compatibility contract
-→ affected consumers
-→ tests
+-> desired behavior
+-> compatibility
+-> affected consumers/contracts
+-> tests
 ```
 
-Đặc biệt kiểm tra public API, config format, database/schema, serialized data và backward compatibility.
+Chú ý API, config, persisted schema, serialized data và backward compatibility.
 
 ---
 
-## 5. Fix bug
-
-Prompt nên mô tả symptom càng cụ thể càng tốt.
+## 8. Fix bug
 
 ```text
 @GitHub làm việc với repo <owner>/<repo>.
 Sử dụng cuongtobi/gpt-web-vibe-kit.
 
-Fix bug:
-Refresh token thất bại khi access token đã hết hạn nhưng refresh token vẫn còn hợp lệ.
+Fix:
+<symptom>.
 
-Tái hiện bug trước.
-Tìm root cause.
-Thêm regression test.
-Chỉ sửa root cause, không refactor ngoài scope.
-Chạy verification đầy đủ.
+Bắt buộc:
+reproduce/locate -> root cause -> regression test -> minimal fix -> affected checks -> verify.
 ```
 
-Flow bắt buộc:
+Flow:
 
 ```text
-REPRODUCE
-   ↓
-ROOT CAUSE
-   ↓
-FAILING REGRESSION TEST
-   ↓
-MINIMAL FIX
-   ↓
-PASSING REGRESSION TEST
-   ↓
-AFFECTED TESTS
-   ↓
-VERIFY
+symptom/error
+-> candidate files
+-> relevant symbols
+-> target/root cause
+-> regression test
+-> minimal fix
+-> affected tests
+-> current-head verification
 ```
 
-Context retrieval có thể bắt đầu bằng:
+Mode: `bug_fix`.
 
-```text
-refresh
-token
-session
-expired
-```
-
-Sau đó mở rộng:
-
-```text
-dependencies
-     ↓
-   target
-     ↑
-consumers
-     +
-   tests
-```
-
-Nếu root cause chưa được chứng minh, không sửa code dựa trên đoán.
-
-Prompt ngắn:
-
-```text
-@GitHub repo <owner>/<repo>
-Use gpt-web-vibe-kit.
-Fix <bug>.
-Reproduce -> root cause -> regression test -> minimal fix -> verify.
-```
+Không sửa dựa trên root-cause guess chưa có evidence.
 
 ---
 
-## 6. Hotfix production
+## 9. Hotfix production
 
-Mode: `hotfix`.
+Dùng `hotfix`.
 
-```text
-@GitHub làm việc với repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
+Rule:
 
-HOTFIX:
-<symptom production>.
-
-Yêu cầu:
-- scope nhỏ nhất có thể;
-- không rename;
-- không cleanup;
-- không upgrade package;
-- không refactor ngoài lỗi;
-- có regression test nếu khả thi;
-- verify các path bị ảnh hưởng.
-```
-
-Hotfix ưu tiên diff nhỏ và tránh thay đổi kiến trúc.
+- patch nhỏ nhất an toàn;
+- không cleanup tiện tay;
+- không rename/refactor ngoài scope;
+- không upgrade dependency nếu fault không yêu cầu;
+- thêm regression coverage khi khả thi;
+- verify current head trước khi hoàn tất.
 
 ---
 
-## 7. Viết test cho code hiện có
+## 10. Test-only
+
+Dùng mode `test`.
 
 ```text
 @GitHub làm việc với repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
+Sử dụng cuongtobi/gpt-web-vibe-kit.
 
-Viết test cho module payment.
+Thêm test cho <module/behavior>.
 
 Cover:
 - happy path;
 - invalid input;
-- payment gateway timeout;
-- duplicate payment.
+- important errors;
+- regression edge cases.
 
-Không thay đổi production behavior trừ khi phát hiện bug thật và tôi yêu cầu fix.
+Dùng mode test.
+Không đổi production behavior nếu tôi không yêu cầu.
 ```
 
-Flow:
+Context:
 
 ```text
-target module
-   ↓
-public behavior
-   ↓
-dependencies/external boundaries
-   ↓
-current tests
-   ↓
-missing cases
-   ↓
-add tests
-   ↓
-run verification
+production target
+-> current behavior/contract
+-> existing test harness/helpers
+-> relevant edge cases
 ```
 
-Nếu test mới phát hiện bug ngoài scope, ghi rõ bug thay vì âm thầm sửa production code.
+Nếu test phát hiện bug production ngoài scope, báo lại thay vì âm thầm sửa.
 
 ---
 
-## 8. Tăng test coverage
+## 11. Tăng coverage
 
-```text
-@GitHub làm việc với repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
-
-Tăng test coverage cho package auth.
+Vẫn dùng `test`.
 
 Ưu tiên:
+
 1. business-critical behavior;
-2. error paths;
-3. security edge cases;
-4. regression-prone code.
+2. security/error boundaries;
+3. regressions;
+4. branching phức tạp.
 
-Không viết test chỉ để tăng phần trăm coverage.
-```
-
-Ưu tiên giá trị behavior thay vì mục tiêu coverage tuyệt đối.
+Không viết test vô nghĩa chỉ để tăng phần trăm.
 
 ---
 
-## 9. Refactor function/class/module
+## 12. Docs-only
+
+Dùng mode `docs`.
 
 ```text
 @GitHub làm việc với repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
+Sử dụng cuongtobi/gpt-web-vibe-kit.
 
-Refactor AuthService:
-- tách token logic thành TokenService;
-- tách session logic thành SessionService;
-- giữ nguyên public API hiện tại;
-- không đổi behavior.
+Cập nhật:
+<README/docs/API guide>.
+
+Dùng mode docs.
+Chỉ đọc source/config cần thiết để verify nội dung.
+Không refactor code ngoài scope.
+```
+
+Context:
+
+```text
+documentation target
+-> source/config chứng minh claim
+-> examples/links
+-> docs checks/CI
+```
+
+Mode này tránh dependency expansion không cần thiết.
+
+---
+
+## 13. Refactor function/class/module
+
+```text
+@GitHub làm việc với repo <owner>/<repo>.
+Sử dụng cuongtobi/gpt-web-vibe-kit.
+
+Refactor <target>.
+Giữ nguyên behavior và public contract.
 
 Trước khi sửa:
-- tìm toàn bộ direct consumers;
-- chạy baseline tests;
+- tìm direct dependencies;
+- tìm toàn bộ direct consumers hợp lý có thể discover;
+- capture baseline test/behavior;
 - ghi invariants.
 
 Sau khi sửa:
-- search lại references cũ;
-- chạy affected tests và CI.
+- search old references;
+- chạy affected checks;
+- verify current head.
 ```
+
+Mode: `refactor`.
 
 Flow:
 
 ```text
-target
-  ↓
-dependencies
-  ↓
-ALL discoverable consumers
-  ↓
-tests/contracts
-  ↓
-baseline
-  ↓
-refactor
-  ↓
-search old references
-  ↓
-verify unchanged behavior
+target symbol
+-> direct dependencies
+-> direct consumers
+-> tests/contracts
+-> baseline
+-> refactor
+-> old-reference search
+-> verify unchanged behavior
 ```
-
-Acceptance criteria nên mô tả invariants như response, public method signature, DB schema hoặc behavior phải giữ nguyên.
 
 ---
 
-## 10. Refactor lớn nhiều module
+## 14. Refactor lớn
 
-```text
-@GitHub làm việc với repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
-
-Refactor module billing sang feature-first architecture.
-
-Không đổi behavior.
-
-Trước implementation:
-- lập dependency/consumer map;
-- xác định public boundaries;
-- chia migration thành các bước nhỏ;
-- xác định test baseline.
-
-Nếu scope quá lớn cho một PR, chia thành nhiều PR độc lập có thứ tự.
-```
+Không bypass context limit. Nếu quá rộng thì chia PR.
 
 Ví dụ:
 
@@ -431,269 +396,168 @@ PR2: migrate consumers
 PR3: remove old implementation
 ```
 
----
-
-## 11. Rename file/class/API
-
-```text
-@GitHub làm việc với repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
-
-Rename UserManager thành UserService.
-
-Yêu cầu:
-- tìm tất cả imports/usages;
-- cập nhật tests;
-- kiểm tra string reference/config/DI/serialization nếu có;
-- không để lại old references.
-```
-
-Đây là dạng `refactor`.
+Mỗi PR có manifest v2 và verification riêng.
 
 ---
 
-## 12. Thêm API endpoint
+## 15. Rename symbol/module/API
 
-```text
-@GitHub làm việc với repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
+Xử lý như `refactor`.
 
-Thêm endpoint:
-POST /api/v1/reports/export
+Search:
 
-Yêu cầu:
-- auth giống endpoint report hiện tại;
-- validate input;
-- dùng report service hiện có;
-- trả file CSV;
-- có API tests;
-- cập nhật OpenAPI nếu framework không tự làm.
-```
+- symbol usages;
+- imports/requires;
+- string/config/registry reference;
+- framework wiring;
+- public docs;
+- tests.
 
-Context thường là:
+Sau sửa phải search lại old symbol/path.
+
+---
+
+## 16. Thêm API endpoint
+
+Context thường:
 
 ```text
 route/controller
-↓
-request/response schema
-↓
-service/use-case
-↓
-repository/data boundary
-↓
-auth/middleware
-↓
-tests
+-> request/response schema
+-> service/use-case
+-> repository/data boundary
+-> auth/middleware
+-> tests
 ```
+
+Persist route/service/schema symbols nếu chúng hữu ích cho continuation.
 
 ---
 
-## 13. Thêm database field / migration
+## 17. Database/schema migration
 
-```text
-@GitHub làm việc với repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
+Chỉ inspect neighborhood liên quan:
 
-Thêm field timezone vào User.
+- model/schema;
+- migration;
+- serializer/DTO/API contract;
+- affected query;
+- existing-data compatibility;
+- tests.
 
-Yêu cầu:
-- default UTC cho user cũ;
-- migration an toàn;
-- API cũ không bị break;
-- update schema/model/serializer;
-- có migration hoặc integration test phù hợp.
-```
-
-Plan phải kiểm tra model, migration, serializer/DTO, API contract, query, existing data và tests.
+Acceptance nên bao gồm behavior với existing data nếu có.
 
 ---
 
-## 14. Thêm package mới
+## 18. Thêm package
 
-```text
-@GitHub làm việc với repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
+Trước khi thêm dependency:
 
-Tôi muốn dùng <package> để <goal>.
-
-Trước khi thêm:
-- kiểm tra project hiện tại có khả năng tương đương không;
-- giải thích vì sao cần dependency mới;
+- kiểm tra repo đã có capability tương đương chưa;
+- giải thích vì sao cần;
 - kiểm tra compatibility;
 - update lockfile;
-- thêm verification phù hợp.
-```
+- chạy test/build liên quan;
+- document config mới có ý nghĩa.
 
-Kit không nên thêm package chỉ vì implementation thuận tiện hơn.
-
----
-
-## 15. Upgrade dependency/framework
-
-```text
-@GitHub làm việc với repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
-
-Upgrade <framework> từ <old> lên <new>.
-
-Phân tích breaking changes có liên quan đến code trong repo.
-Lập impact map.
-Chia migration thành bước nhỏ nếu cần.
-Chạy full affected tests/build.
-```
-
-Mode thường là `change`.
+Mode thường `feature` hoặc `change`.
 
 ---
 
-## 16. Frontend feature
+## 19. Upgrade dependency/framework
 
-```text
-@GitHub làm việc với repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
+Dùng `change`.
 
-Thêm filter theo status vào trang Orders.
+Chỉ phân tích breaking change liên quan repo hiện tại, lập bounded impact map rồi chạy affected checks đủ rộng.
 
-Yêu cầu:
-- giữ query params khi reload;
-- không fetch dữ liệu dư thừa;
-- mobile vẫn hoạt động;
-- thêm component/integration test phù hợp.
-```
+---
+
+## 20. Frontend feature
 
 Context:
 
 ```text
 route/page
-↓
-feature UI
-↓
-hook/composable/store
-↓
-API/data layer
-↓
-tests
+-> component
+-> hook/composable/store
+-> API/data layer
+-> tests
 ```
 
-Với Next.js, Nuxt và SvelteKit phải kiểm tra server/client boundaries.
+Với Next.js/Nuxt/SvelteKit, kiểm tra server/client boundary và file-system routing.
 
 ---
 
-## 17. Frontend bug
+## 21. Frontend bug
 
-```text
-@GitHub làm việc với repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
+Không mặc định component đang hiển thị lỗi là root cause. Search state/cache/data-flow symbols và direct consumers.
 
-Fix bug:
-Sau khi edit profile, UI hiển thị dữ liệu cũ cho đến khi refresh browser.
+Các vùng hay gặp:
 
-Tìm root cause trước.
-Kiểm tra state/cache/query invalidation.
-Thêm regression test nếu test harness hỗ trợ.
-```
-
-Root cause có thể nằm ở query cache, store, API mutation, stale props hoặc server/client data boundary.
+- query cache invalidation;
+- store;
+- mutation;
+- stale props;
+- server/client boundary.
 
 ---
 
-## 18. WordPress plugin/theme
-
-```text
-@GitHub làm việc với repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
-
-Repo này là WordPress theme/plugin.
-Thêm <feature>.
+## 22. WordPress theme/plugin
 
 Không sửa WordPress core.
-Kiểm tra:
+
+Inspect:
+
 - hooks/filters;
-- REST routes;
+- REST registration;
+- shortcodes/blocks;
 - options/meta;
-- template/block contracts;
-- enqueue assets;
-- compatibility với behavior hiện tại.
-```
+- templates;
+- enqueue behavior.
 
-WordPress hook graph chỉ là best-effort, không phải absolute truth.
+Hook composition động chỉ là static-best-effort; verify bằng native checks/manual integration khi cần.
 
 ---
 
-## 19. Rails/Laravel/Django/Nest và framework magic
+## 23. Rails/Laravel/Django/Nest và framework magic
 
-Có thể bổ sung trong prompt:
-
-```text
-Khi phân tích dependency, không chỉ dựa trên static imports.
-Kiểm tra framework registration/DI/routes/callbacks và dùng native tests/tooling để verify.
-```
-
-Kit đã có adapter hints cho các framework chính.
+Không chỉ dựa static imports. Dùng adapter hints và inspect routes, DI/providers, callbacks, autoloading/registry cùng native tests.
 
 ---
 
-## 20. Chỉ phân tích / chỉ lập plan
+## 24. Plan only
 
 ```text
 @GitHub làm việc với repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
+Sử dụng cuongtobi/gpt-web-vibe-kit.
 
-Chỉ PLAN, không sửa code.
+CHỈ PLAN. Không sửa code.
 
-Phân tích việc chuyển authentication từ session cookie sang JWT.
-
-Tôi cần:
-- current architecture;
-- affected modules;
-- dependency/consumer impact;
-- migration risks;
-- compatibility;
-- test plan;
-- đề xuất chia PR.
+Task:
+<mô tả>
 ```
 
-Workflow dừng ở:
+Chạy:
 
 ```text
 session -> plan
 ```
 
----
-
-## 21. Review code / PR
-
-```text
-@GitHub review PR #42 trong repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit/skills/github-review/SKILL.md.
-
-Kiểm tra:
-- scope so với task manifest;
-- bugs/regressions;
-- missing consumers;
-- compatibility;
-- tests;
-- current-head CI;
-- unresolved review threads.
-```
-
-Nếu PR head thay đổi sau review thì evidence review cũ phải được coi là stale cho phần code thay đổi.
+Manifest có thể giữ status `planning`.
 
 ---
 
-## 22. Verify task đã code xong
+## 25. Verify only
 
 ```text
-@GitHub làm việc với PR #42 của repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
+@GitHub làm việc với PR #<number> trong repo <owner>/<repo>.
+Sử dụng cuongtobi/gpt-web-vibe-kit.
 
-Chỉ chạy phase verify + github-review.
-Không thêm feature mới.
-
-Đối chiếu acceptance criteria với current-head CI và final diff.
+Chỉ chạy verify + github-review.
+Đối chiếu acceptance criteria với final diff và current-head CI.
 ```
 
-Output:
+Status:
 
 - `PASS_VERIFIED`
 - `FAIL_VERIFICATION`
@@ -701,199 +565,228 @@ Output:
 
 ---
 
-## 23. Tiếp tục task ở session mới
+## 26. Review PR
 
-Prompt khuyên dùng:
+```text
+@GitHub review PR #42 trong repo <owner>/<repo>.
+Sử dụng gpt-web-vibe-kit/skills/github-review/SKILL.md.
+
+Kiểm tra:
+- đúng một schema-v2 manifest valid;
+- manifest head khớp PR head;
+- context nằm trong hard budget;
+- scope/compatibility;
+- missing consumers;
+- tests;
+- unresolved review threads;
+- current-head CI.
+```
+
+---
+
+## 27. Tiếp tục ở session mới
 
 ```text
 @GitHub tiếp tục PR #42 trong repo <owner>/<repo>.
 Sử dụng cuongtobi/gpt-web-vibe-kit.
-
-Đọc task manifest trong PR và restore context trước.
-Tiếp tục từ trạng thái hiện tại.
+Restore context từ schema-v2 task manifest trước khi tiếp tục.
 ```
+
+Không cần chat transcript cũ.
+
+---
+
+## 28. Không nhớ PR number
+
+Yêu cầu ChatGPT tìm open vibe PR theo:
+
+- task ID;
+- branch;
+- title;
+- request.
+
+Nếu còn nhiều candidate, liệt kê thay vì đoán.
+
+---
+
+## 29. `CONTEXT_HIT`
+
+Dùng khi manifest v2 duy nhất valid, budget-compliant và observed blob SHA không đổi.
+
+Chỉ fetch current file cần cho bước tiếp theo.
+
+---
+
+## 30. `CONTEXT_REFRESH`
+
+Dùng khi chỉ bounded minority observed files thay đổi.
+
+Refresh file đổi và direct relationship cần thiết, sau đó update blob SHA/symbol/depth.
+
+---
+
+## 31. `CONTEXT_REBUILD`
+
+Dùng khi:
+
+- manifest thiếu/trùng/invalid/v1;
+- scope đổi lớn;
+- rebase/base làm invalid neighborhood;
+- quá nhiều observed file đổi;
+- context vượt hard limit;
+- target cũ không còn phù hợp.
+
+Rebuild vẫn bounded, không có nghĩa đọc cả repo.
+
+---
+
+## 32. Rebase/base đổi
+
+Re-evaluate target/dependency/consumer. Nếu baseline đổi đáng kể thì `CONTEXT_REBUILD`.
+
+---
+
+## 33. CI fail
 
 Flow:
 
 ```text
-read project context
-↓
-read PR manifest
-↓
-read head SHA
-↓
-compare observed blob SHAs
-↓
-CONTEXT_HIT / CONTEXT_REFRESH / CONTEXT_REBUILD
-↓
-fetch bounded code
-↓
-continue
+failed run
+-> failed job
+-> failed step/log
+-> root cause
+-> scoped fix
+-> new head
+-> old PASS/CI stale
+-> verify new head
 ```
 
-Không cần paste lại chat cũ.
+Không rerun mù khi failure có nguyên nhân deterministic rõ ràng.
 
 ---
 
-## 24. Không nhớ PR number
+## 34. Repo chưa có meaningful checks
 
-```text
-@GitHub làm việc với repo <owner>/<repo>.
-Sử dụng gpt-web-vibe-kit.
-
-Tôi muốn tiếp tục task "refresh token".
-Tìm vibe PR đang mở phù hợp và restore context.
-```
-
-Match bằng PR title, branch, task manifest request và task_id. Nếu còn nhiều candidate thì phải liệt kê thay vì chọn ngẫu nhiên.
-
----
-
-## 25. Code bị người khác sửa giữa hai session
-
-Session mới so:
-
-```text
-stored blob SHA
-vs
-current blob SHA
-```
-
-- `CONTEXT_HIT`: relevant references không đổi.
-- `CONTEXT_REFRESH`: refresh subset thay đổi + neighborhood.
-- `CONTEXT_REBUILD`: scope/baseline thay đổi lớn hoặc quá nhiều observed files thay đổi.
-
----
-
-## 26. Branch vừa rebase main
-
-```text
-@GitHub tiếp tục PR #42.
-PR vừa rebase main.
-
-Sử dụng gpt-web-vibe-kit.
-Re-evaluate context và impact trước khi code tiếp.
-```
-
-Nếu rebase làm thay đổi nhiều target/dependency, chọn `CONTEXT_REBUILD`.
-
----
-
-## 27. CI fail
-
-```text
-@GitHub tiếp tục PR #42.
-Sử dụng gpt-web-vibe-kit.
-
-CI đang fail.
-Đọc failed jobs/steps/logs.
-Xác định root cause.
-Chỉ sửa lỗi thật.
-Rerun verification cho current head.
-```
-
-Flow:
-
-```text
-failed CI
-↓
-job
-↓
-step
-↓
-log
-↓
-root cause
-↓
-fix
-↓
-new head
-↓
-old CI stale
-↓
-verify new head
-```
-
----
-
-## 28. Repo chưa có tests/checks
-
-Nếu không có meaningful verification:
+Dùng:
 
 ```text
 NEEDS_VERIFICATION_CONFIG
 ```
 
-Prompt:
-
-```text
-Repo chưa có meaningful verification.
-Hãy thiết lập verification tối thiểu hợp lý cho stack này trước khi coi task hoàn tất.
-Không dùng no-op command để tạo PASS.
-```
-
-Có thể dùng test, lint, typecheck, build hoặc smoke test tùy stack.
+Không thêm no-op để tạo pass. Thiết lập test/lint/typecheck/build/smoke phù hợp nếu scope cho phép.
 
 ---
 
-## 29. Merge PR
+## 35. Verification head binding
 
-Kit không tự merge mặc định.
+Manifest:
+
+```json
+{
+  "head_sha": "abc123",
+  "verification": {
+    "head_sha": "abc123",
+    "ci_run_id": 123456,
+    "status": "PASS_VERIFIED"
+  }
+}
+```
+
+PASS chỉ hợp lệ khi cả hai SHA cũng khớp actual current PR head.
+
+Có commit mới thì PASS cũ stale.
+
+---
+
+## 36. Acceptance evidence
+
+Mỗi criterion dùng structured evidence:
+
+```json
+{
+  "id": "AC1",
+  "expected": "Refresh succeeds after access expiry.",
+  "status": "met",
+  "evidence": [
+    {
+      "type": "test",
+      "ref": "tests/test_auth.py::test_refresh_after_expiry"
+    },
+    {
+      "type": "ci",
+      "ref": "run:123456"
+    }
+  ]
+}
+```
+
+Không mark `met` chỉ dựa prose không có evidence.
+
+---
+
+## 37. Migrate PR schema v1
+
+Schema v1 không còn là normal continuation state.
+
+Với old active PR:
+
+1. đọc current base/head/diff;
+2. rebuild bounded neighborhood;
+3. thêm `context.symbols`;
+4. thêm `role`, `depth`, `symbols` cho observed files;
+5. đổi acceptance evidence thành list có cấu trúc;
+6. thêm `verification.head_sha`;
+7. replace block cũ bằng đúng một v2 block;
+8. verify current head trước khi PASS.
+
+---
+
+## 38. Nhiều task song song
+
+Mỗi task một branch + PR:
+
+```text
+PR #41 feature
+PR #42 bug fix
+PR #43 docs
+```
+
+Không có shared `current-task.json`.
+
+---
+
+## 39. Merge
+
+Kit không merge mặc định.
 
 ```text
 @GitHub kiểm tra PR #42.
-Nếu current head PASS_VERIFIED và không còn blocker, squash merge vào main.
+Nếu current head PASS_VERIFIED và không có blocker,
+squash merge vào main.
 ```
 
-Flow:
-
-```text
-verify current head
-↓
-review final diff
-↓
-check CI
-↓
-check blocker
-↓
-merge
-↓
-post-merge CI nếu có
-```
+Chỉ merge khi user hoặc repository instructions authorize rõ ràng.
 
 ---
 
-## 30. Nhiều task song song
-
-Mỗi task dùng branch + PR riêng:
-
-```text
-PR #41 = feature export CSV
-PR #42 = bug refresh token
-PR #43 = refactor billing
-```
-
-Không có shared `current-task.json`, nên state không đè nhau.
-
----
-
-# Prompt chuẩn khuyên dùng
+# Prompt mẫu
 
 ## Full implementation
 
 ```text
 @GitHub làm việc với repo <owner>/<repo>.
 
-Sử dụng cuongtobi/gpt-web-vibe-kit và chạy workflow vibe đầy đủ.
+Sử dụng cuongtobi/gpt-web-vibe-kit và chạy full vibe workflow.
 
 Task:
 <mô tả>
 
 Yêu cầu:
-- <requirement 1>
-- <requirement 2>
+- ...
+- ...
 
-Không mở rộng scope ngoài yêu cầu.
+Respect hard context budget.
+Không mở rộng scope.
 Chỉ coi hoàn tất khi current-head verification pass.
 ```
 
@@ -903,11 +796,12 @@ Chỉ coi hoàn tất khi current-head verification pass.
 @GitHub làm việc với repo <owner>/<repo>.
 Sử dụng cuongtobi/gpt-web-vibe-kit.
 
-Fix bug:
+Fix:
 <symptom>
 
 Bắt buộc:
-reproduce -> root cause -> regression test -> minimal fix -> affected tests -> verify.
+reproduce/locate -> root cause -> regression test -> minimal fix -> affected checks -> verify.
+Dùng iterative symbol-aware search và giữ context bounded.
 ```
 
 ## Refactor
@@ -919,10 +813,10 @@ Sử dụng cuongtobi/gpt-web-vibe-kit.
 Refactor:
 <target>
 
-Giữ nguyên behavior/public contract.
-Tìm dependencies + tất cả direct consumers.
-Capture baseline trước khi sửa.
-Search old references sau khi sửa.
+Giữ behavior/public contract.
+Tìm direct dependencies và consumers.
+Capture baseline.
+Search old references sau sửa.
 Verify current head.
 ```
 
@@ -932,21 +826,37 @@ Verify current head.
 @GitHub làm việc với repo <owner>/<repo>.
 Sử dụng cuongtobi/gpt-web-vibe-kit.
 
-Viết test cho:
+Mode: test
+
+Thêm tests cho:
 <module/feature>
 
 Cover:
 <cases>
 
-Không thay production behavior trừ khi tôi yêu cầu.
+Không đổi production behavior nếu không được yêu cầu.
 ```
 
-## Continue session
+## Docs-only
+
+```text
+@GitHub làm việc với repo <owner>/<repo>.
+Sử dụng cuongtobi/gpt-web-vibe-kit.
+
+Mode: docs
+
+Cập nhật:
+<README/docs>
+
+Chỉ dùng code/config context cần thiết để verify claim trong tài liệu.
+```
+
+## Continue
 
 ```text
 @GitHub tiếp tục PR #<number> trong repo <owner>/<repo>.
 Sử dụng cuongtobi/gpt-web-vibe-kit.
-Restore context từ PR manifest rồi tiếp tục task.
+Restore strict v2 manifest, check budget/blob SHA rồi tiếp tục.
 ```
 
 ## Plan only
@@ -955,7 +865,7 @@ Restore context từ PR manifest rồi tiếp tục task.
 @GitHub làm việc với repo <owner>/<repo>.
 Sử dụng cuongtobi/gpt-web-vibe-kit.
 
-Chỉ PLAN, không sửa code.
+CHỈ PLAN. Không sửa code.
 
 Task:
 <mô tả>
@@ -968,7 +878,7 @@ Task:
 Sử dụng cuongtobi/gpt-web-vibe-kit.
 
 Chỉ verify + github-review.
-Đối chiếu acceptance criteria với current-head diff và CI.
+Yêu cầu verification.head_sha khớp current PR head.
 ```
 
 ---
@@ -977,24 +887,27 @@ Chỉ verify + github-review.
 
 | Công việc | Mode |
 | --- | --- |
-| Tạo project/chức năng mới | `feature` |
-| Thay đổi behavior hiện có | `change` |
-| Sửa lỗi | `bug_fix` |
-| Tái cấu trúc không đổi behavior | `refactor` |
-| Sửa production khẩn cấp | `hotfix` |
-| Chỉ thêm test | test-only task, thường không đổi production behavior |
+| Project/chức năng mới | `feature` |
+| Thay đổi behavior/compatibility | `change` |
+| Sửa defect | `bug_fix` |
+| Tái cấu trúc giữ behavior | `refactor` |
+| Production fix tối thiểu khẩn cấp | `hotfix` |
+| Test/coverage-only | `test` |
+| README/docs/examples/metadata | `docs` |
 
 ---
 
-# 10 nguyên tắc quan trọng
+# Nguyên tắc cốt lõi
 
-1. Mỗi task thực tế nên có một PR riêng.
-2. Session mới tiếp tục bằng PR, không bằng cách paste lại chat cũ.
-3. Task manifest lưu reference, không lưu full source.
-4. Current GitHub code luôn authoritative hơn manifest cũ.
-5. Static dependency chỉ advisory.
-6. Bug phải tìm root cause trước khi fix.
-7. Refactor phải tìm consumers và baseline behavior.
-8. PASS phải thuộc current head SHA.
-9. Head thay đổi thì CI/review evidence cũ trở thành stale.
-10. Không có meaningful checks thì dùng `NEEDS_VERIFICATION_CONFIG`, không fake PASS.
+1. Một task thực tế thường dùng một PR.
+2. Continue từ GitHub state, không từ pasted chat history.
+3. PR phải có đúng một strict schema-v2 manifest.
+4. Persist references/symbols/blob SHA, không persist source copy.
+5. Respect hard context limits.
+6. Dùng iterative symbol-aware retrieval thay filename-only search.
+7. Static dependency chỉ advisory.
+8. Bug phải có evidence-supported root cause.
+9. Refactor phải discover consumers và capture baseline.
+10. `PASS_VERIFIED` phải thuộc current head SHA.
+11. Commit mới làm PASS cũ stale.
+12. Không có meaningful checks thì dùng `NEEDS_VERIFICATION_CONFIG`, không fake pass.

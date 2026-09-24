@@ -88,6 +88,16 @@ Mỗi PR do kit quản lý phải có **đúng một** block:
     "ci_run_id": null,
     "status": null
   },
+  "security": {
+    "classification": "security-sensitive",
+    "surfaces": ["authentication/session/token"],
+    "trust_boundaries": ["refresh token -> session renewal"],
+    "abuse_cases": ["replay revoked refresh token"],
+    "controls": ["rotation", "revocation", "authorization boundary", "sensitive-token logging protection"],
+    "evidence": [],
+    "head_sha": null,
+    "limitations": []
+  },
   "uncertainties": []
 }
 ```

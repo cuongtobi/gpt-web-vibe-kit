@@ -15,9 +15,11 @@ Make the pull request a complete durable handoff for the task.
 4. Confirm saved context is inside `.vibe/config.json` hard budgets.
 5. Ensure human-readable PR text summarizes goal, scope, compatibility, checks and unresolved risks.
 6. Read current diff/current-head CI and relevant unresolved review threads.
-7. If code changes after verification/review, update head state and re-verify.
-8. Mark task `ready` only when required ACs are met and `verification.head_sha` equals current PR head.
-9. Merge only with explicit user authorization or clear repository authorization.
+7. Review touched comments/docstrings/documentation for useful rationale, redundancy and staleness.
+8. Confirm final security classification from the diff. For a security-sensitive task, require non-empty structured `security.evidence`, `security.head_sha == current PR head`, and explicit limitations/scanner availability; normal PASS evidence alone is insufficient.
+9. If code changes after verification/review, update head state, invalidate stale verification/security evidence and re-verify.
+10. Mark task `ready` only when required ACs are met, `verification.head_sha` equals current PR head, and any required security evidence is current.
+11. Merge only with explicit user authorization or clear repository authorization.
 
 ## Handoff
 A future session should recover from:

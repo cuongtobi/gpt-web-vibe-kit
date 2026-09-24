@@ -67,6 +67,16 @@ Every vibe-managed task PR must contain **exactly one** machine-readable block:
     "ci_run_id": null,
     "status": null
   },
+  "security": {
+    "classification": "security-sensitive",
+    "surfaces": ["authentication/session/token"],
+    "trust_boundaries": ["refresh token -> session renewal"],
+    "abuse_cases": ["replay revoked refresh token"],
+    "controls": ["rotation", "revocation", "authorization boundary", "sensitive-token logging protection"],
+    "evidence": [],
+    "head_sha": null,
+    "limitations": []
+  },
   "uncertainties": []
 }
 ```
@@ -99,6 +109,9 @@ Human-readable PR text may appear outside the block.
 8. Acceptance evidence is a structured list of `{type, ref}` objects.
 9. `PASS_VERIFIED` requires `verification.head_sha == task.head_sha`.
 10. The saved context must fit the target repository's `.vibe/config.json` hard budget.
+11. `security` is optional at the schema level only for backward compatibility with older schema-v2 PRs. New tasks should include it.
+12. A `security-sensitive` manifest must identify at least one security surface.
+13. If a security-sensitive task is `PASS_VERIFIED`, `security.head_sha` must equal task `head_sha` and `security.evidence` must be non-empty.
 
 ## Acceptance evidence examples
 
@@ -130,6 +143,35 @@ Diff/source evidence:
 ```
 
 Evidence describes where a criterion was demonstrated; it is not a replacement for actual current-head verification.
+
+## Security evidence
+
+Security state is durable task state, not a claim that the code is secure.
+
+Typical evidence records:
+
+```json
+{
+  "type": "security-test",
+  "ref": "tests/test_auth.py::test_revoked_refresh_token_cannot_be_replayed"
+}
+```
+
+```json
+{
+  "type": "security-review",
+  "ref": "diff:auth-session-token-review@<head-sha>"
+}
+```
+
+```json
+{
+  "type": "dependency-audit",
+  "ref": "ci:run:123456789/job:dependency-audit"
+}
+```
+
+When tooling is unavailable, record the limitation in `security.limitations`; do not invent scanner evidence. A new head invalidates prior `security.head_sha` and evidence just as it invalidates prior PASS evidence.
 
 ## Verification head binding
 

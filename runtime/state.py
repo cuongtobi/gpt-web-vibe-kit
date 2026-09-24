@@ -13,6 +13,7 @@ VALID_STATUSES = {"planning", "building", "verifying", "blocked", "ready", "comp
 VALID_ACCEPTANCE_STATUSES = {"pending", "met", "failed", "unverified"}
 VALID_VERIFICATION_STATUSES = {None, "PASS_VERIFIED", "FAIL_VERIFICATION", "NEEDS_VERIFICATION_CONFIG"}
 VALID_OBSERVED_ROLES = {"target", "dependency", "consumer", "test", "config", "related"}
+VALID_SECURITY_CLASSIFICATIONS = {"standard", "security-sensitive"}
 
 DEFAULT_CONTEXT_LIMITS = {
     "max_dependency_depth": 2,
@@ -25,7 +26,7 @@ DEFAULT_CONTEXT_LIMITS = {
 TASK_KEYS = {
     "schema_version", "task_id", "mode", "status", "request",
     "base_branch", "base_sha", "head_branch", "head_sha",
-    "targets", "context", "acceptance", "verification", "uncertainties",
+    "targets", "context", "acceptance", "verification", "security", "uncertainties",
 }
 CONTEXT_KEYS = {
     "symbols", "dependencies", "consumers", "tests", "config_files", "observed_files",
@@ -34,6 +35,10 @@ OBSERVED_FILE_KEYS = {"path", "sha", "role", "depth", "symbols"}
 ACCEPTANCE_KEYS = {"id", "expected", "status", "evidence"}
 EVIDENCE_KEYS = {"type", "ref"}
 VERIFICATION_KEYS = {"commands", "head_sha", "ci_run_id", "status"}
+SECURITY_KEYS = {
+    "classification", "surfaces", "trust_boundaries", "abuse_cases",
+    "controls", "evidence", "head_sha", "limitations",
+}
 
 
 class ManifestError(ValueError):
@@ -158,6 +163,32 @@ def validate_task_manifest(data: Mapping[str, Any]) -> None:
     _require(verification_status in VALID_VERIFICATION_STATUSES, "invalid verification status")
     if verification_status == "PASS_VERIFIED":
         _require(verification_head == data["head_sha"], "PASS_VERIFIED evidence must belong to current head_sha")
+
+    security = data.get("security")
+    if security is not None:
+        _require(isinstance(security, Mapping), "security must be an object")
+        _reject_unknown_keys(security, SECURITY_KEYS, "security")
+        classification = security.get("classification")
+        _require(classification in VALID_SECURITY_CLASSIFICATIONS, "invalid security classification")
+        for key in ("surfaces", "trust_boundaries", "abuse_cases", "controls", "limitations"):
+            _require_string_list(security.get(key), f"security.{key}")
+        evidence = security.get("evidence")
+        _require(isinstance(evidence, list), "security.evidence must be a list")
+        for ev in evidence:
+            _require(isinstance(ev, Mapping), "security evidence entries must be objects")
+            _reject_unknown_keys(ev, EVIDENCE_KEYS, "security evidence")
+            _require_string(ev.get("type"), "security evidence type")
+            _require_string(ev.get("ref"), "security evidence ref")
+        security_head = security.get("head_sha")
+        _require(
+            security_head is None or (isinstance(security_head, str) and bool(security_head.strip())),
+            "security.head_sha must be null or a non-empty string",
+        )
+        if classification == "security-sensitive":
+            _require(bool(security.get("surfaces")), "security-sensitive tasks must identify at least one surface")
+            if verification_status == "PASS_VERIFIED":
+                _require(security_head == data["head_sha"], "security evidence must belong to current head_sha")
+                _require(bool(evidence), "security-sensitive PASS_VERIFIED requires security evidence")
 
     _require_string_list(data.get("uncertainties"), "uncertainties")
 
@@ -320,9 +351,17 @@ def context_decision(
 def verification_is_current(manifest: Mapping[str, Any]) -> bool:
     validate_task_manifest(manifest)
     verification = manifest["verification"]
+    security = manifest.get("security")
+    security_current = True
+    if isinstance(security, Mapping) and security.get("classification") == "security-sensitive":
+        security_current = (
+            security.get("head_sha") == manifest["head_sha"]
+            and bool(security.get("evidence"))
+        )
     return (
         verification["status"] == "PASS_VERIFIED"
         and verification["head_sha"] == manifest["head_sha"]
+        and security_current
     )
 
 
@@ -346,5 +385,9 @@ def update_manifest_head(manifest: Mapping[str, Any], head_sha: str) -> dict[str
     if verification["head_sha"] != head_sha and verification["status"] == "PASS_VERIFIED":
         verification["status"] = None
         verification["ci_run_id"] = None
+    security = result.get("security")
+    if isinstance(security, Mapping) and security.get("head_sha") != head_sha:
+        security["head_sha"] = None
+        security["evidence"] = []
     validate_task_manifest(result)
     return result

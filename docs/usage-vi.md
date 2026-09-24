@@ -547,6 +547,49 @@ Manifest có thể giữ status `planning`.
 
 ---
 
+## Comment & Documentation Policy
+
+Trong build/review:
+- ưu tiên name/structure để code tự giải thích;
+- comment **WHY**, invariant, constraint và tradeoff không hiển nhiên thay vì kể lại WHAT;
+- document public/shared contract khi hữu ích;
+- TODO/FIXME phải actionable;
+- update/xóa comment/docstring/docs stale trong vùng sửa;
+- không thêm comment noise chỉ để tăng mật độ comment.
+
+## Security-sensitive task
+
+Kit không hứa "code an toàn tuyệt đối". Thay vào đó, workflow bắt buộc: security-sensitive changes không được silent pass nếu chưa có explicit security review/evidence.
+
+Tự phân loại security-sensitive khi request/impact/diff chạm auth/authz, session/token/password, upload/filesystem, DB query với dữ liệu user kiểm soát, URL do user kiểm soát, HTML/template rendering, command execution, payment/webhook, secrets/credentials hoặc trust boundary tương đương.
+
+Ví dụ — refresh token:
+
+```text
+rotation / expiry
+revocation
+replay risk
+cookie flags
+session fixation
+authorization boundary
+secret/token logging
+```
+
+Ví dụ — file upload:
+
+```text
+file size
+extension/MIME
+path traversal
+filename sanitization
+overwrite behavior
+execution risk
+storage boundary
+authorization
+```
+
+Với các task này, lưu `security` state trong manifest v2 và bắt buộc current-head security diff review + targeted tests/checks + scanner/dependency-audit evidence khi có/phù hợp. Thiếu tooling phải ghi limitation explicit, không được silent pass.
+
 ## 25. Verify only
 
 ```text
@@ -911,3 +954,5 @@ Yêu cầu verification.head_sha khớp current PR head.
 10. `PASS_VERIFIED` phải thuộc current head SHA.
 11. Commit mới làm PASS cũ stale.
 12. Không có meaningful checks thì dùng `NEEDS_VERIFICATION_CONFIG`, không fake pass.
+13. Comment dùng cho rationale không hiển nhiên; không kể lại code obvious và phải giữ docs/comment trong vùng sửa luôn current.
+14. Security-sensitive change bắt buộc explicit current-head security evidence; không coi PASS thông thường là security guarantee.

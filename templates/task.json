@@ -31,5 +31,15 @@
     "ci_run_id": null,
     "status": null
   },
-  "uncertainties": []
+  "uncertainties": [],
+  "security": {
+    "classification": "standard",
+    "surfaces": [],
+    "trust_boundaries": [],
+    "abuse_cases": [],
+    "controls": [],
+    "evidence": [],
+    "head_sha": null,
+    "limitations": []
+  }
 }

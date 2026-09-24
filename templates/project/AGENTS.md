@@ -16,3 +16,14 @@ Use iterative symbol-aware GitHub search: direct evidence -> candidate files -> 
 Static dependency discovery is advisory. Dynamic framework wiring requires project-native tests/tooling or direct inspection.
 
 Never report `PASS_VERIFIED` unless `verification.head_sha`, task `head_sha` and the current PR head SHA all match.
+
+
+## Comment and documentation policy
+
+Prefer self-explanatory code. Comment **why**, constraints, invariants and non-obvious tradeoffs; do not narrate obvious code. Document public/shared contracts when useful, keep TODO/FIXME actionable, and update/remove stale comments or docstrings whenever touched behavior changes.
+
+## Security policy
+
+This workflow does not guarantee secure code. Its rule is: **security-sensitive changes cannot silently pass without explicit security review/evidence**.
+
+Treat authentication, authorization, session/token/password, upload/filesystem, user-controlled database queries or URLs, HTML/template rendering, command execution, payment/webhook and secrets/credentials work as security-sensitive. Record the affected trust boundary in the PR task manifest, apply relevant secure-coding controls, and require current-head security evidence before the task is ready.

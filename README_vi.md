@@ -88,6 +88,16 @@ Mỗi PR do kit quản lý phải có **đúng một** block:
     "ci_run_id": null,
     "status": null
   },
+  "security": {
+    "classification": "security-sensitive",
+    "surfaces": ["authentication/session/token"],
+    "trust_boundaries": ["refresh token -> session renewal"],
+    "abuse_cases": ["replay revoked refresh token"],
+    "controls": ["rotation", "revocation", "authorization boundary", "sensitive-token logging protection"],
+    "evidence": [],
+    "head_sha": null,
+    "limitations": []
+  },
   "uncertainties": []
 }
 ```
@@ -160,6 +170,41 @@ Chỉ high-confidence identifiers được lưu vào `context.symbols`; không c
 - `hotfix` — fix production tối thiểu, khẩn cấp
 - `test` — test/coverage, mặc định không đổi production behavior
 - `docs` — README/docs/examples/metadata, chỉ đọc code tối thiểu để verify nội dung
+
+## Comment & Documentation Policy
+
+Kit ưu tiên code tự giải thích bằng tên và cấu trúc. Comment dùng để giữ thông tin mà code không thể hiện rõ: **WHY**, constraint, invariant, tradeoff không hiển nhiên, security assumption, reasoning về performance/cache, edge case khó và workaround có chủ đích. Tránh comment kể lại code hiển nhiên hoặc docstring boilerplate cho private helper đơn giản. Public/shared contract nên được document khi caller cần biết behavior, error, side effect, lifecycle hoặc invariant. Comment/docstring/docs bị stale trong vùng sửa phải được cập nhật/xóa; TODO/FIXME phải actionable.
+
+## Security Policy
+
+Kit **không** đảm bảo code được tạo/sửa là an toàn tuyệt đối. Rule có thể audit là:
+
+> **Security-sensitive changes cannot silently pass without explicit security review/evidence.**
+
+```text
+PLAN
+  ↓
+identify security-sensitive surface
+  ↓
+BUILD
+  ↓
+secure coding rules
+  ↓
+VERIFY
+  ├─ security diff review
+  ├─ project-native security scanner nếu có
+  ├─ dependency vulnerability check khi phù hợp/có sẵn
+  └─ targeted security tests
+  ↓
+GITHUB REVIEW
+  └─ bắt buộc security evidence của current head
+```
+
+Authentication, authorization, session/token/password, upload/filesystem, database query với dữ liệu user kiểm soát, URL do user kiểm soát, HTML/template rendering, command execution, payment/webhook và secrets/credentials tự động làm task thành `security-sensitive` khi request hoặc impact/diff cuối cùng chạm tới chúng.
+
+Task manifest mới lưu object `security` gồm classification, surfaces, trust boundaries, abuse cases, controls, structured evidence, evidence head SHA và limitations. Manifest schema-v2 cũ chưa có `security` vẫn hợp lệ để backward-compatible; task security-sensitive đang active phải bổ sung block trước verify.
+
+Với task security-sensitive, lint/type/test/build hoặc runtime `PASS_VERIFIED` thông thường **chưa đủ**. Security evidence phải explicit và bind đúng current PR head. Scanner thiếu phải được ghi thành limitation, không được âm thầm coi là success.
 
 ## Bootstrap
 

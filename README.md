@@ -88,6 +88,16 @@ Every managed PR contains **exactly one** block:
     "ci_run_id": null,
     "status": null
   },
+  "security": {
+    "classification": "security-sensitive",
+    "surfaces": ["authentication/session/token"],
+    "trust_boundaries": ["refresh token -> session renewal"],
+    "abuse_cases": ["replay revoked refresh token"],
+    "controls": ["rotation", "revocation", "authorization boundary", "sensitive-token logging protection"],
+    "evidence": [],
+    "head_sha": null,
+    "limitations": []
+  },
   "uncertainties": []
 }
 ```
@@ -160,6 +170,41 @@ High-confidence identifiers are persisted in `context.symbols`; source code is n
 - `hotfix` — urgent minimal production fix
 - `test` — test/coverage work without production behavior change by default
 - `docs` — documentation/examples/metadata with minimal code context
+
+## Comment and documentation policy
+
+The kit prefers self-explanatory code and uses comments to preserve information the code cannot express clearly. Comment **why**, constraints, invariants, non-obvious tradeoffs, security assumptions, performance/cache reasoning, tricky edge cases and deliberate workarounds. Avoid narration of obvious code and boilerplate docstrings for simple private helpers. Public/shared contracts should be documented when callers need behavior, errors, side effects, lifecycle or invariants. Touched stale comments/docstrings/docs must be updated or removed, and TODO/FIXME notes must be actionable.
+
+## Security policy
+
+The kit does **not** guarantee that generated or modified code is secure. Its auditable rule is:
+
+> **Security-sensitive changes cannot silently pass without explicit security review/evidence.**
+
+```text
+PLAN
+  ↓
+identify security-sensitive surface
+  ↓
+BUILD
+  ↓
+secure coding rules
+  ↓
+VERIFY
+  ├─ security diff review
+  ├─ project-native security scanner when available
+  ├─ dependency vulnerability check when relevant/available
+  └─ targeted security tests
+  ↓
+GITHUB REVIEW
+  └─ current-head security evidence required
+```
+
+Authentication, authorization, sessions/tokens/passwords, upload/filesystem, user-controlled database queries or URLs, HTML/template rendering, command execution, payments/webhooks and secrets/credentials automatically make the task security-sensitive when found in the request or final impact/diff.
+
+New task manifests persist a `security` object with classification, surfaces, trust boundaries, abuse cases, controls, structured evidence, evidence head SHA and limitations. Older schema-v2 manifests without `security` remain valid for compatibility; an active security-sensitive task should add the block before verification.
+
+For security-sensitive tasks, normal lint/type/test/build or runtime `PASS_VERIFIED` is insufficient by itself. Security evidence must be explicit and bound to the current PR head. Missing scanners are reported as limitations rather than silently treated as success.
 
 ## Bootstrap
 

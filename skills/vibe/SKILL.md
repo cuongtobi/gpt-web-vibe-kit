@@ -15,11 +15,11 @@ Complete one repository change with bounded context and evidence tied to the cur
    - create a configured `vibe/` branch;
    - create a schema-v2 task manifest;
    - open a PR early enough that its body becomes durable task state.
-4. Apply `plan`.
+4. Apply `plan`. The plan must classify the task as `standard` or `security-sensitive`; sensitive tasks must persist surfaces/trust boundaries/abuse cases/controls in manifest `security` state.
 5. Unless planning-only, apply `build`.
-6. Apply `verify`.
+6. Apply `verify`. A security-sensitive task is not complete merely because normal current-head checks pass; its security evidence must also be current and complete.
 7. Apply `github-review`.
-8. Keep manifest paths/symbols/blob SHAs/head/verification synchronized.
+8. Keep manifest paths/symbols/blob SHAs/head/verification/security evidence synchronized.
 
 ## Mode intent
 - `test`: test-only/coverage work without production behavior change unless explicitly requested.
@@ -45,3 +45,4 @@ BASELINE -> TARGET -> DIRECT CONSUMERS -> REFACTOR -> OLD-REFERENCE SEARCH -> VE
 - Never infer absence of impact from one empty static search.
 - Do not silently broaden scope.
 - Do not merge without explicit authorization or repository rules that clearly authorize it.
+- Do not claim that the kit or a completed task is "security guaranteed"; report concrete security evidence and limitations instead.

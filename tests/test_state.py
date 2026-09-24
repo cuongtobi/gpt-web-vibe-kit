@@ -45,6 +45,16 @@ def task_manifest():
         },
         "acceptance": [{"id": "AC1", "expected": "Refresh succeeds", "status": "pending", "evidence": []}],
         "verification": {"commands": ["pytest tests/test_auth.py"], "head_sha": None, "ci_run_id": None, "status": None},
+        "security": {
+            "classification": "standard",
+            "surfaces": [],
+            "trust_boundaries": [],
+            "abuse_cases": [],
+            "controls": [],
+            "evidence": [],
+            "head_sha": None,
+            "limitations": [],
+        },
         "uncertainties": [],
     }
 
@@ -126,6 +136,50 @@ class StateTests(unittest.TestCase):
     def test_new_head_invalidates_pass(self):
         manifest = task_manifest(); manifest["verification"] = {"commands":["pytest"],"head_sha":"head123","ci_run_id":123,"status":"PASS_VERIFIED"}
         updated = update_manifest_head(manifest, "head456"); self.assertEqual(updated["head_sha"], "head456"); self.assertIsNone(updated["verification"]["status"]); self.assertIsNone(updated["verification"]["ci_run_id"])
+
+    def test_legacy_v2_manifest_without_security_remains_valid(self):
+        manifest = task_manifest(); manifest.pop("security")
+        validate_task_manifest(manifest)
+
+    def test_security_sensitive_pass_requires_current_security_evidence(self):
+        manifest = task_manifest()
+        manifest["security"].update({
+            "classification": "security-sensitive",
+            "surfaces": ["authentication/session/token"],
+            "trust_boundaries": ["refresh token -> session renewal"],
+            "abuse_cases": ["replay revoked refresh token"],
+            "controls": ["rotation and revocation"],
+        })
+        manifest["verification"] = {"commands":["pytest"],"head_sha":"head123","ci_run_id":123,"status":"PASS_VERIFIED"}
+        with self.assertRaises(ManifestError):
+            validate_task_manifest(manifest)
+        manifest["security"]["evidence"] = [{"type":"test","ref":"tests/test_auth.py::test_replay_rejected"}]
+        manifest["security"]["head_sha"] = "head123"
+        validate_task_manifest(manifest)
+        self.assertTrue(verification_is_current(manifest))
+
+    def test_security_sensitive_manifest_requires_surface(self):
+        manifest = task_manifest()
+        manifest["security"]["classification"] = "security-sensitive"
+        with self.assertRaises(ManifestError):
+            validate_task_manifest(manifest)
+
+    def test_new_head_invalidates_security_evidence(self):
+        manifest = task_manifest()
+        manifest["security"].update({
+            "classification": "security-sensitive",
+            "surfaces": ["file upload/filesystem"],
+            "trust_boundaries": ["HTTP upload -> storage"],
+            "abuse_cases": ["path traversal"],
+            "controls": ["normalized server-side storage path"],
+            "evidence": [{"type":"test","ref":"tests/test_upload.py::test_rejects_traversal"}],
+            "head_sha": "head123",
+        })
+        manifest["verification"] = {"commands":["pytest"],"head_sha":"head123","ci_run_id":123,"status":"PASS_VERIFIED"}
+        updated = update_manifest_head(manifest, "head456")
+        self.assertIsNone(updated["security"]["head_sha"])
+        self.assertEqual(updated["security"]["evidence"], [])
+        self.assertIsNone(updated["verification"]["status"])
 
     def test_project_context_template_valid(self):
         root = Path(__file__).resolve().parents[1]; data = json.loads((root / "templates/project/.vibe/project-context.json").read_text(encoding="utf-8")); validate_project_context(data)

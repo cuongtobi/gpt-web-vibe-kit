@@ -34,6 +34,17 @@ class SkillTests(unittest.TestCase):
         self.assertIn("verification.head_sha", text)
         self.assertIn("PASS_VERIFIED", text)
 
+    def test_comment_and_security_policies_are_wired_into_workflow(self):
+        root = Path(__file__).resolve().parents[1]
+        build = (root / "skills/build/SKILL.md").read_text(encoding="utf-8")
+        plan = (root / "skills/plan/SKILL.md").read_text(encoding="utf-8")
+        verify = (root / "skills/verify/SKILL.md").read_text(encoding="utf-8")
+        review = (root / "skills/github-review/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("Comment and documentation policy", build)
+        self.assertIn("security-sensitive", plan)
+        self.assertIn("security evidence", verify.lower())
+        self.assertIn("security.evidence", review)
+
     def test_vibe_skill_lists_test_and_docs_modes(self):
         root = Path(__file__).resolve().parents[1]
         text = (root / "skills/vibe/SKILL.md").read_text(encoding="utf-8")

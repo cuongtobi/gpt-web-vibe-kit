@@ -24,7 +24,8 @@ Prepare a repository for ChatGPT Web continuity without creating task-specific s
 5. Use lightweight repository heuristics only. Prefer root manifests and common framework files; do not build a full source index.
 6. Keep `.vibe/project-context.json` small. It is routing metadata, not a source cache.
 7. Configure manifest schema v2 and bounded-context limits from `.vibe/config.json`.
-8. Verify the generated JSON and only record verification commands that are supported by project configuration.
+8. When creating a new `AGENTS.md`, include the kit's Comment & Documentation Policy and Security Policy. Never overwrite an existing `AGENTS.md`; the workflow skills still apply these policies even when repository-local instructions are preserved.
+9. Verify the generated JSON and only record verification commands that are supported by project configuration.
 
 ## Detection hints
 - Python: `pyproject.toml`, requirements files, `.py`, FastAPI/Django/Flask imports.

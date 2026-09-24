@@ -547,6 +547,49 @@ The PR manifest may remain in `planning`.
 
 ---
 
+## Comment and documentation policy
+
+During build/review:
+- prefer self-explanatory names/structure;
+- comment **why**, invariants, constraints and non-obvious tradeoffs rather than obvious what;
+- document public/shared contracts when useful;
+- keep TODO/FIXME actionable;
+- update/remove stale comments/docstrings/docs in touched areas;
+- reject comment noise added only to increase density.
+
+## Security-sensitive work
+
+The kit does not promise "secure code". It guarantees a workflow requirement instead: security-sensitive changes cannot silently pass without explicit security review/evidence.
+
+Automatically classify a task as security-sensitive when request/impact/diff touches auth/authz, sessions/tokens/passwords, upload/filesystem, user-controlled DB queries or URLs, HTML/template rendering, command execution, payments/webhooks, secrets/credentials or another comparable trust boundary.
+
+Example — refresh token:
+
+```text
+rotation / expiry
+revocation
+replay risk
+cookie flags
+session fixation
+authorization boundary
+secret/token logging
+```
+
+Example — file upload:
+
+```text
+file size
+extension/MIME
+path traversal
+filename sanitization
+overwrite behavior
+execution risk
+storage boundary
+authorization
+```
+
+For these tasks, persist `security` state in the v2 manifest and require current-head security diff review + targeted tests/checks + scanner/dependency-audit evidence when available/relevant. Missing tooling is an explicit limitation, not a silent pass.
+
 ## 25. Verify only
 
 ```text
@@ -911,3 +954,5 @@ Require verification.head_sha to match the current PR head.
 10. `PASS_VERIFIED` must belong to the current head SHA.
 11. New commits invalidate old PASS evidence.
 12. Missing meaningful checks means `NEEDS_VERIFICATION_CONFIG`, not a fake pass.
+13. Comments document non-obvious rationale; do not narrate obvious code, and keep touched documentation current.
+14. Security-sensitive changes require explicit current-head security evidence; never treat normal PASS as a security guarantee.

@@ -65,8 +65,29 @@ focus on production target + existing test harness + edge cases. Do not change p
 ### `docs`
 focus on documentation targets and source/config needed to verify claims. Avoid code dependency expansion that is irrelevant to documentation.
 
+## Security classification
+Classify every task from both the request and discovered impact as `standard` or `security-sensitive`.
+
+Treat the task as security-sensitive when it touches authentication, authorization, sessions, tokens, passwords, file upload/filesystem access, database queries using user-controlled data, user-controlled URLs/network fetches, HTML/template rendering, command/process execution, payments/webhooks, secrets/credentials, or another comparable trust boundary.
+
+For a security-sensitive task, persist/update manifest `security` with:
+- `classification: "security-sensitive"`;
+- concrete `surfaces`;
+- relevant `trust_boundaries`;
+- plausible `abuse_cases`;
+- existing/security `controls` that must remain intact;
+- empty/stale verification `evidence` until verify runs on the current head;
+- `head_sha: null` until security evidence is produced;
+- known `limitations`.
+
+Examples:
+- refresh-token/session work: rotation/expiry, revocation, replay risk, cookie flags, session fixation, authorization boundary and secret/token logging;
+- file upload work: size limits, extension/MIME validation, path traversal, filename sanitization, overwrite behavior, execution risk, storage boundary and authorization.
+
+If an older valid schema-v2 task lacks `security`, it remains readable for compatibility. Add the block when the task is planned/continued under this policy. Do not call a task secure merely because it was classified.
+
 ## Acceptance
 Use stable IDs such as AC1. Each criterion contains an observable expected result, status and structured evidence list. Use `unverified`/empty evidence until real evidence exists.
 
 ## Output
-Summarize targets/symbols, bounded neighborhood, budget usage, ordered steps, verification plan and uncertainties.
+Summarize targets/symbols, bounded neighborhood, budget usage, ordered steps, verification plan, security classification/evidence plan, and uncertainties.

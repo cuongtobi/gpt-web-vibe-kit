@@ -543,7 +543,7 @@ def context_decision(
 
 
 SECURITY_CANDIDATE_TERMS = {
-    "authentication": ("auth", "login", "sign-in", "signin", "credential"),
+    "authentication": ("auth", "authentication", "login", "sign-in", "signin", "credential"),
     "authorization": ("authorization", "permission", "role", "access control", "acl"),
     "session-token-password": (
         "session", "token", "jwt", "cookie", "password", "refresh_token",
@@ -565,18 +565,31 @@ FRONTEND_VISUAL_DIMENSIONS = {
 }
 
 
+def _normalized_security_text(value: str) -> str:
+    normalized = value.lower()
+    for separator in ("_", "-", "/", "\\", ".", ":"):
+        normalized = normalized.replace(separator, " ")
+    return " " + " ".join(normalized.split()) + " "
+
+
 def security_candidate_surfaces(manifest: Mapping[str, Any]) -> list[str]:
     context = manifest.get("context") if isinstance(manifest.get("context"), Mapping) else {}
+    observed = context.get("observed_files", []) if isinstance(context, Mapping) else []
     parts = [
         str(manifest.get("request", "")),
         *[str(item) for item in manifest.get("targets", []) if isinstance(item, str)],
         *[str(item) for item in context.get("symbols", []) if isinstance(item, str)],
+        *[
+            str(item.get("path", ""))
+            for item in observed
+            if isinstance(item, Mapping)
+        ],
     ]
-    text = " ".join(parts).lower()
+    text = _normalized_security_text(" ".join(parts))
     return [
         surface
         for surface, terms in SECURITY_CANDIDATE_TERMS.items()
-        if any(term in text for term in terms)
+        if any(_normalized_security_text(term).strip() in text for term in terms)
     ]
 
 

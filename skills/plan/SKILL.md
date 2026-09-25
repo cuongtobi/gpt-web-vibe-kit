@@ -73,6 +73,17 @@ focus on production target + existing test harness + edge cases. Do not change p
 ### `docs`
 focus on documentation targets and source/config needed to verify claims. Avoid code dependency expansion that is irrelevant to documentation.
 
+## Frontend classification
+
+Classify frontend work from the request plus discovered target evidence; a frontend framework alone is not sufficient. When the task is UI work, read `../vibe/reference/frontend-policy.md` and persist the optional manifest `frontend` block with:
+- one surface hint;
+- `intent: refine` or `redesign`;
+- optional `DESIGN.md` path/mode;
+- only the acceptance dimensions that materially apply;
+- bounded visual-QA state with `max_rounds <= 2`.
+
+If `DESIGN.md` exists and is relevant, keep it inside the normal bounded observed context. If absent, infer the incumbent UI system from bounded current code; do not generate a design document. Map frontend dimensions into normal acceptance criteria/evidence and omit the frontend block entirely for non-UI work.
+
 ## Security classification
 Classify every task from both the request and discovered impact as `standard` or `security-sensitive`.
 
@@ -98,4 +109,4 @@ If an older valid schema-v2 task lacks `security`, it remains readable for compa
 Use stable IDs such as AC1. Each criterion contains an observable expected result, status and structured evidence list. Use `unverified`/empty evidence until real evidence exists.
 
 ## Output
-Summarize material assumptions/tradeoffs, targets/symbols, bounded neighborhood, budget usage, ordered steps with verification evidence, security classification/evidence plan, and uncertainties.
+Summarize material assumptions/tradeoffs, targets/symbols, bounded neighborhood, budget usage, ordered steps with verification evidence, frontend surface/intent/design context and relevant UI acceptance dimensions when applicable, security classification/evidence plan, and uncertainties.

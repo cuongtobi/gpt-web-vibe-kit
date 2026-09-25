@@ -22,11 +22,11 @@ Complete one repository change with bounded context and evidence tied to the cur
    - create a configured `vibe/` branch;
    - create a schema-v2 task manifest;
    - open a PR early enough that its body becomes durable task state.
-4. Apply `plan`. The plan must classify the task as `standard` or `security-sensitive`; sensitive tasks must persist surfaces/trust boundaries/abuse cases/controls in manifest `security` state.
+4. Apply `plan`. The plan must classify whether the task is frontend from request/target evidence and, when applicable, persist the optional manifest `frontend` state without adding a new workflow. It must also classify the task as `standard` or `security-sensitive`; sensitive tasks persist surfaces/trust boundaries/abuse cases/controls in manifest `security` state.
 5. Unless planning-only, apply `build`.
 6. Apply `verify`. A security-sensitive task is not complete merely because normal current-head checks pass; its security evidence must also be current and complete.
 7. Apply `github-review`.
-8. Keep manifest paths/symbols/blob SHAs/head/verification/security evidence synchronized.
+8. Keep manifest paths/symbols/blob SHAs/head/verification/frontend visual evidence/security evidence synchronized.
 
 ## Mode intent
 - `test`: test-only/coverage work without production behavior change unless explicitly requested.

@@ -474,15 +474,34 @@ Chỉ phân tích breaking change liên quan repo hiện tại, lập bounded im
 
 ## 20. Frontend feature
 
+Task frontend vẫn chạy trong workflow hiện tại; không có command design/polish/audit riêng. Chỉ classify frontend khi request/target có bằng chứng UI cụ thể, không dựa riêng vào việc project dùng framework frontend.
+
 Context:
 
 ```text
 route/page
 -> component
+-> theme/tokens/styles
 -> hook/composable/store
 -> API/data layer
 -> tests
 ```
+
+Khi phù hợp, persist block `frontend` tùy chọn trong manifest. Dùng `intent: refine` cho cải tiến UI cục bộ nhưng giữ visual language hiện tại; chỉ dùng `redesign` khi request cho phép thay đổi visual language.
+
+`DESIGN.md` là optional. Nếu có và liên quan thì đọc; nếu không có, suy ra design system hiện tại từ bounded token/theme/shared component/style/screen lân cận. Không tự tạo `DESIGN.md` chỉ vì file này chưa tồn tại.
+
+Chỉ chọn acceptance dimension thực sự liên quan:
+
+```text
+visual-consistency
+responsive-behavior
+interaction-states
+accessibility
+content-layout-integrity
+```
+
+Visual QA chỉ dùng browser/E2E/story/screenshot tooling project đã có, tối đa một vòng inspect và một vòng confirm. Nếu không có visual tooling, ghi rõ limitation và không được claim visual behavior đã verify.
 
 Với Next.js/Nuxt/SvelteKit, kiểm tra server/client boundary và file-system routing.
 

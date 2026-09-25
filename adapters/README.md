@@ -12,3 +12,5 @@ Language adapters describe:
 Framework adapters add framework-native context such as routes, components, providers, jobs, hooks or file-system routing.
 
 The session/plan skills should combine all detected language/framework hints but keep the actual model context bounded. Current source, native tooling, tests and CI remain authoritative.
+
+Frontend-capable framework adapters may set `"frontend": true`; tooling-only adapters such as Vite may set `"frontend_tooling": true`. These are routing hints only. They do not classify every task in that framework as frontend work; request/target evidence remains authoritative.

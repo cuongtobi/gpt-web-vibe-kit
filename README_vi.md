@@ -106,6 +106,37 @@ Mỗi PR do kit quản lý phải có **đúng một** block:
 
 Marker trùng hoặc lệch cặp là invalid. Task schema v1 phải rebuild thành v2 từ GitHub state hiện tại trước khi tiếp tục bình thường.
 
+### Frontend state tùy chọn
+
+Task frontend vẫn dùng manifest v2 và workflow hiện tại. Chỉ task thực sự chạm UI mới thêm block `frontend` tùy chọn:
+
+```json
+{
+  "frontend": {
+    "surface": "application",
+    "intent": "refine",
+    "design_context": {
+      "path": null,
+      "mode": "infer-existing-ui"
+    },
+    "acceptance_dimensions": [
+      "visual-consistency",
+      "responsive-behavior",
+      "accessibility"
+    ],
+    "visual_qa": {
+      "max_rounds": 2,
+      "browser_tooling": [],
+      "evidence": [],
+      "head_sha": null,
+      "limitations": []
+    }
+  }
+}
+```
+
+Classifier được giữ bảo thủ: chỉ có React/Next/Vue... trong project chưa đủ để coi task là frontend; request hoặc target phải thật sự chạm UI. `DESIGN.md` là optional; nếu không có, agent suy ra visual system hiện tại từ bounded UI code. Frontend verification tái sử dụng tooling sẵn có của project, không tự cài browser runtime chỉ vì policy này. Visual evidence đã ghi phải gắn với PR head hiện tại; nếu thiếu visual tooling thì ghi rõ limitation.
+
 ## Hard context budget
 
 `.vibe/config.json` chứa giới hạn bắt buộc:

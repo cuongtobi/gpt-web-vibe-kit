@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Any, Iterable, Mapping
 
 TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9_/-]{2,}")
 IDENTIFIER_PART_RE = re.compile(r"[A-Z]?[a-z]+|[A-Z]+(?=[A-Z]|$)|[0-9]+")
@@ -90,77 +90,193 @@ def _symbol_relevance(symbol: str, request_tokens: set[str]) -> int:
     return len(parts & request_tokens)
 
 
+def rank_candidates_diagnostics(
+    files: Mapping[str, str],
+    request: str,
+    *,
+    known_symbols: Iterable[str] = (),
+) -> list[dict[str, Any]]:
+    tokens = query_tokens(request)
+    symbols = list(known_symbols)
+    ranked: list[dict[str, Any]] = []
+    for path, content in files.items():
+        score = 0
+        reasons: list[str] = []
+        for token in tokens:
+            path_hits = _text_score(path, (token,))
+            content_hits = _text_score(content, (token,))
+            if path_hits:
+                score += 3 * path_hits
+                reasons.append(f"path-token:{token}")
+            if content_hits:
+                score += 2 * content_hits
+                reasons.append(f"content-token:{token}")
+        for symbol in symbols:
+            if symbol and symbol in content:
+                score += 8
+                reasons.append(f"symbol-content:{symbol}")
+            if symbol and symbol.lower() in path.lower():
+                score += 4
+                reasons.append(f"symbol-path:{symbol}")
+        if score:
+            ranked.append({
+                "path": path,
+                "score": score,
+                "reasons": list(dict.fromkeys(reasons)),
+            })
+    return sorted(ranked, key=lambda item: (-item["score"], item["path"]))
+
+
 def rank_candidates(
     files: Mapping[str, str],
     request: str,
     *,
     known_symbols: Iterable[str] = (),
 ) -> list[tuple[str, int]]:
-    tokens = query_tokens(request)
-    symbols = list(known_symbols)
-    ranked: list[tuple[str, int]] = []
-    for path, content in files.items():
-        score = 0
-        score += 3 * _text_score(path, tokens)
-        score += 2 * _text_score(content, tokens)
-        for symbol in symbols:
-            if symbol and symbol in content:
-                score += 8
-            if symbol and symbol.lower() in path.lower():
-                score += 4
-        if score:
-            ranked.append((path, score))
-    return sorted(ranked, key=lambda item: (-item[1], item[0]))
+    return [
+        (item["path"], item["score"])
+        for item in rank_candidates_diagnostics(
+            files,
+            request,
+            known_symbols=known_symbols,
+        )
+    ]
 
 
 def collect_project_files(root: Path, *, scan_limit: int = 500) -> dict[str, str]:
-    result: dict[str, str] = {}
-    count = 0
+    candidates: list[Path] = []
     for current, dirs, filenames in os.walk(root):
         dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS)
         for filename in sorted(filenames):
             path = Path(current) / filename
             if path.suffix.lower() not in CODE_SUFFIXES and filename not in {"Gemfile", "Dockerfile"}:
                 continue
-            rel = path.relative_to(root).as_posix()
-            try:
-                result[rel] = path.read_text(encoding="utf-8", errors="replace")[:100_000]
-            except OSError:
-                continue
-            count += 1
-            if count >= scan_limit:
-                return result
+            candidates.append(path)
+
+    # Select shallow paths first so an alphabetically early deep subtree cannot
+    # consume the whole read budget before root-level entrypoints are considered.
+    candidates.sort(
+        key=lambda path: (
+            len(path.relative_to(root).parts),
+            path.relative_to(root).as_posix(),
+        )
+    )
+
+    result: dict[str, str] = {}
+    for path in candidates[:scan_limit]:
+        rel = path.relative_to(root).as_posix()
+        try:
+            result[rel] = path.read_text(encoding="utf-8", errors="replace")[:100_000]
+        except OSError:
+            continue
     return result
+
+
+def _configured_retrieval_limit(
+    config: Mapping[str, Any] | None,
+    key: str,
+    default: int,
+) -> int:
+    if not isinstance(config, Mapping):
+        return default
+    context = config.get("context")
+    if not isinstance(context, Mapping):
+        return default
+    value = context.get(key, default)
+    return value if isinstance(value, int) and not isinstance(value, bool) else default
+
+
+def iterative_retrieve_diagnostics(
+    root: Path,
+    request: str,
+    *,
+    config: Mapping[str, Any] | None = None,
+    max_files: int = 15,
+    max_rounds: int | None = None,
+    per_round: int = 5,
+    max_symbol_hints: int | None = None,
+    scan_limit: int = 500,
+) -> list[dict[str, Any]]:
+    files = collect_project_files(root, scan_limit=scan_limit)
+    request_tokens = set(query_tokens(request))
+    rounds = (
+        max_rounds
+        if max_rounds is not None
+        else _configured_retrieval_limit(config, "max_search_rounds", 3)
+    )
+    symbol_limit = (
+        max_symbol_hints
+        if max_symbol_hints is not None
+        else _configured_retrieval_limit(config, "max_symbol_hints", 24)
+    )
+
+    selected_paths: list[str] = []
+    selected: list[dict[str, Any]] = []
+    known_symbols: list[str] = []
+
+    for round_number in range(1, rounds + 1):
+        ranked = rank_candidates_diagnostics(
+            files,
+            request,
+            known_symbols=known_symbols,
+        )
+        additions = [
+            item for item in ranked
+            if item["path"] not in selected_paths
+        ][:per_round]
+        if not additions:
+            break
+
+        for item in additions:
+            if len(selected_paths) >= max_files:
+                break
+            selected_paths.append(item["path"])
+            selected.append({
+                "path": item["path"],
+                "score": item["score"],
+                "round": round_number,
+                "reasons": item["reasons"],
+            })
+
+        discovered: list[str] = []
+        for item in additions:
+            path = item["path"]
+            for symbol in extract_symbols(files[path]):
+                if (
+                    _symbol_relevance(symbol, request_tokens) > 0
+                    and symbol not in known_symbols
+                    and symbol not in discovered
+                ):
+                    discovered.append(symbol)
+        remaining = max(0, symbol_limit - len(known_symbols))
+        known_symbols.extend(discovered[:remaining])
+        if len(selected_paths) >= max_files:
+            break
+
+    return selected
 
 
 def iterative_retrieve(
     root: Path,
     request: str,
     *,
+    config: Mapping[str, Any] | None = None,
     max_files: int = 15,
-    max_rounds: int = 3,
+    max_rounds: int | None = None,
     per_round: int = 5,
+    max_symbol_hints: int | None = None,
+    scan_limit: int = 500,
 ) -> list[str]:
-    files = collect_project_files(root)
-    request_tokens = set(query_tokens(request))
-    selected: list[str] = []
-    known_symbols: list[str] = []
-
-    for _ in range(max_rounds):
-        ranked = rank_candidates(files, request, known_symbols=known_symbols)
-        additions = [path for path, _score in ranked if path not in selected][:per_round]
-        if not additions:
-            break
-        selected.extend(additions)
-        selected = selected[:max_files]
-
-        discovered: list[str] = []
-        for path in additions:
-            for symbol in extract_symbols(files[path]):
-                if _symbol_relevance(symbol, request_tokens) > 0 and symbol not in known_symbols:
-                    discovered.append(symbol)
-        known_symbols.extend(discovered[:20])
-        if len(selected) >= max_files:
-            break
-
-    return selected
+    return [
+        item["path"]
+        for item in iterative_retrieve_diagnostics(
+            root,
+            request,
+            config=config,
+            max_files=max_files,
+            max_rounds=max_rounds,
+            per_round=per_round,
+            max_symbol_hints=max_symbol_hints,
+            scan_limit=scan_limit,
+        )
+    ]

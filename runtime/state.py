@@ -589,7 +589,7 @@ def security_candidate_surfaces(manifest: Mapping[str, Any]) -> list[str]:
     return [
         surface
         for surface, terms in SECURITY_CANDIDATE_TERMS.items()
-        if any(_normalized_security_text(term).strip() in text for term in terms)
+        if any(_normalized_security_text(term) in text for term in terms)
     ]
 
 

@@ -17,6 +17,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install test dependencies
+        run: python -m pip install "jsonschema>=4,<5"
       - name: Compile
         run: python -m py_compile install.py runtime/state.py runtime/retrieval.py runtime/vibe_web.py
       - name: Tests

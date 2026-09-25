@@ -348,6 +348,7 @@ Runtime vẫn chỉ dùng Python standard library.
 ## Tests
 
 ```bash
+python -m pip install "jsonschema>=4,<5"
 python -m unittest discover -s tests -v
 python -m py_compile install.py runtime/state.py runtime/retrieval.py runtime/vibe_web.py
 ```

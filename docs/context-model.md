@@ -138,7 +138,7 @@ round 3: direct dependencies/consumers/tests/contracts
 
 The plan may stop before round 3 when enough evidence exists. Empty search results never prove there is no impact.
 
-Only high-confidence symbols are persisted in `context.symbols`. There is no project-wide source cache.
+Only high-confidence symbols are persisted in `context.symbols`. There is no project-wide source cache. Runtime retrieval can also return diagnostics (path, score, discovery round and request/symbol reasons). `max_search_rounds` and `max_symbol_hints` come from config, and bounded file scanning prioritizes shallower project paths before deep subtrees.
 
 ## Verification state
 
@@ -158,9 +158,11 @@ A pass is current only when:
 
 ```text
 verification.head_sha == task.head_sha == current PR head SHA
++ every acceptance criterion is met with structured evidence
++ required security/frontend evidence is current
 ```
 
-When code changes, previous PASS evidence becomes stale.
+The config-aware completion gate also enforces `verification.require_commands` and explicit disposition for runtime security candidates kept as standard. When code changes, every saved verification outcome becomes stale; ready/complete state returns to verification.
 
 ## Why the PR body is task storage
 

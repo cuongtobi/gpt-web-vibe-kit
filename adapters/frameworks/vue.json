@@ -4,26 +4,9 @@
   "frontend": true,
   "language": "typescript",
   "search": {
-    "context": [
-      "components",
-      "composables",
-      "stores",
-      "router",
-      "API/data modules"
-    ],
-    "consumers": [
-      "component imports",
-      "composable/store usage",
-      "route references"
-    ]
+    "context": ["components", "composables", "stores", "router", "API/data modules"],
+    "consumers": ["component imports", "composable/store usage", "route references"]
   },
-  "verification": [
-    "component/unit tests",
-    "typecheck",
-    "lint",
-    "build when configured"
-  ],
-  "limitations": [
-    "runtime plugin registration and lazy loading are best-effort"
-  ]
+  "verification": ["component/unit tests", "typecheck", "lint", "build when configured"],
+  "limitations": ["runtime plugin registration and lazy loading are best-effort"]
 }

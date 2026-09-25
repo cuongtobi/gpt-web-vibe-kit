@@ -4,26 +4,9 @@
   "frontend": true,
   "language": "typescript",
   "search": {
-    "context": [
-      "app/pages routes",
-      "route handlers",
-      "server/client components",
-      "actions",
-      "data/API modules"
-    ],
-    "consumers": [
-      "file-system routes",
-      "component imports",
-      "server/client boundary usage"
-    ]
+    "context": ["app/pages routes", "route handlers", "server/client components", "actions", "data/API modules"],
+    "consumers": ["file-system routes", "component imports", "server/client boundary usage"]
   },
-  "verification": [
-    "typecheck",
-    "lint",
-    "tests",
-    "next build when configured"
-  ],
-  "limitations": [
-    "generated route types and framework runtime behavior require native build/tests"
-  ]
+  "verification": ["typecheck", "lint", "tests", "next build when configured"],
+  "limitations": ["generated route types and framework runtime behavior require native build/tests"]
 }

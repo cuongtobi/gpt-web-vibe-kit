@@ -1,11 +1,30 @@
 {
   "id": "nuxt",
   "kind": "framework",
+  "frontend": true,
   "language": "typescript",
   "search": {
-    "context": ["pages", "server/api", "plugins", "middleware", "composables", "components"],
-    "consumers": ["file-system routes", "auto-imported composables/components", "server/client boundary usage"]
+    "context": [
+      "pages",
+      "server/api",
+      "plugins",
+      "middleware",
+      "composables",
+      "components"
+    ],
+    "consumers": [
+      "file-system routes",
+      "auto-imported composables/components",
+      "server/client boundary usage"
+    ]
   },
-  "verification": ["typecheck", "lint", "tests", "nuxt build when configured"],
-  "limitations": ["auto-imports and generated route/runtime behavior require native Nuxt tooling"]
+  "verification": [
+    "typecheck",
+    "lint",
+    "tests",
+    "nuxt build when configured"
+  ],
+  "limitations": [
+    "auto-imports and generated route/runtime behavior require native Nuxt tooling"
+  ]
 }

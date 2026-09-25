@@ -1,11 +1,27 @@
 {
   "id": "react",
   "kind": "framework",
+  "frontend": true,
   "language": "javascript",
   "search": {
-    "context": ["components", "hooks", "stores/context", "API/data adapters"],
-    "consumers": ["component imports", "hook usage", "shared state usage"]
+    "context": [
+      "components",
+      "hooks",
+      "stores/context",
+      "API/data adapters"
+    ],
+    "consumers": [
+      "component imports",
+      "hook usage",
+      "shared state usage"
+    ]
   },
-  "verification": ["unit/component tests", "typecheck/lint", "critical E2E when configured"],
-  "limitations": ["runtime composition and lazy loading may be dynamic"]
+  "verification": [
+    "unit/component tests",
+    "typecheck/lint",
+    "critical E2E when configured"
+  ],
+  "limitations": [
+    "runtime composition and lazy loading may be dynamic"
+  ]
 }

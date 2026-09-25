@@ -1,11 +1,27 @@
 {
   "id": "svelte",
   "kind": "framework",
+  "frontend": true,
   "language": "typescript",
   "search": {
-    "context": ["components", "stores", "actions", "API/data modules"],
-    "consumers": ["component imports", "store/action usage"]
+    "context": [
+      "components",
+      "stores",
+      "actions",
+      "API/data modules"
+    ],
+    "consumers": [
+      "component imports",
+      "store/action usage"
+    ]
   },
-  "verification": ["component/unit tests", "typecheck", "lint", "build"],
-  "limitations": ["runtime composition and generated artifacts are best-effort"]
+  "verification": [
+    "component/unit tests",
+    "typecheck",
+    "lint",
+    "build"
+  ],
+  "limitations": [
+    "runtime composition and generated artifacts are best-effort"
+  ]
 }

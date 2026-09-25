@@ -7,7 +7,6 @@ from pathlib import Path
 try:
     from runtime.state import (
         completion_violations,
-        completion_violations,
         context_budget_violations,
         context_decision,
         extract_task_manifest,
@@ -18,6 +17,7 @@ try:
     from install import detect_project_context
 except ModuleNotFoundError:  # direct execution: python runtime/vibe_web.py
     from state import (
+        completion_violations,
         context_budget_violations,
         context_decision,
         extract_task_manifest,

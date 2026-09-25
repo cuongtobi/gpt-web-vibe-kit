@@ -1,8 +1,9 @@
+import tempfile
 import unittest
 from pathlib import Path
 
 from install import detect_project_context
-from runtime.retrieval import extract_symbols, iterative_retrieve, query_tokens
+from runtime.retrieval import collect_project_files, extract_symbols, iterative_retrieve, query_tokens
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests" / "fixtures"
@@ -43,7 +44,7 @@ class RetrievalTests(unittest.TestCase):
             (root / "styles/site.css").write_text(".nav { display: flex; }\n", encoding="utf-8")
             (root / "index.html").write_text("<nav class='nav'>Home</nav>\n", encoding="utf-8")
             (root / "Widget.vue").write_text("<template><button>Go</button></template>\n", encoding="utf-8")
-            files = retrieval.collect_project_files(root)
+            files = collect_project_files(root)
             self.assertIn("styles/site.css", files)
             self.assertIn("index.html", files)
             self.assertIn("Widget.vue", files)

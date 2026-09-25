@@ -149,23 +149,56 @@ def detect_project_context(target: Path) -> dict[str, Any]:
 
     verification: list[str] = []
     scripts = package.get("scripts", {}) if isinstance(package.get("scripts"), dict) else {}
+
+    package_manager = "npm"
+    declared_manager = package.get("packageManager")
+    if isinstance(declared_manager, str):
+        candidate = declared_manager.split("@", 1)[0].strip().lower()
+        if candidate in {"npm", "pnpm", "yarn", "bun"}:
+            package_manager = candidate
+    elif "pnpm-lock.yaml" in rels:
+        package_manager = "pnpm"
+    elif "yarn.lock" in rels:
+        package_manager = "yarn"
+    elif "bun.lock" in rels or "bun.lockb" in rels:
+        package_manager = "bun"
+
+    def package_script_command(script: str) -> str:
+        if package_manager == "npm":
+            return "npm test" if script == "test" else f"npm run {script}"
+        if package_manager == "bun":
+            return f"bun run {script}"
+        return f"{package_manager} {script}"
+
     for script in ("test", "lint", "typecheck", "build"):
         if script in scripts:
-            command = "npm test" if script == "test" else f"npm run {script}"
+            command = package_script_command(script)
             if command not in verification:
                 verification.append(command)
 
     if "python" in languages:
-        if "pytest" in manifest_text or any(rel.startswith("tests/") for rel in rels):
+        pytest_configured = (
+            "pytest" in manifest_text
+            or "[tool.pytest" in manifest_text
+            or "pytest.ini" in rels
+            or "tox.ini" in rels and "pytest" in _read(target / "tox.ini").lower()
+        )
+        has_python_tests = any(
+            rel.startswith("tests/") and Path(rel).name.startswith("test") and rel.endswith(".py")
+            for rel in rels
+        )
+        if pytest_configured:
             verification.append("pytest")
+        elif "manage.py" in rels:
+            verification.append("python manage.py test")
+        elif has_python_tests:
+            verification.append("python -m unittest discover")
         if "ruff" in manifest_text:
             verification.append("ruff check .")
         if "mypy" in manifest_text:
             verification.append("mypy .")
         elif "pyright" in manifest_text:
             verification.append("pyright")
-        if "manage.py" in rels and "pytest" not in verification:
-            verification.append("python manage.py test")
 
     if "rails" in frameworks:
         if any(rel.startswith("spec/") for rel in rels):

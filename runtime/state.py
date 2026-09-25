@@ -14,6 +14,16 @@ VALID_ACCEPTANCE_STATUSES = {"pending", "met", "failed", "unverified"}
 VALID_VERIFICATION_STATUSES = {None, "PASS_VERIFIED", "FAIL_VERIFICATION", "NEEDS_VERIFICATION_CONFIG"}
 VALID_OBSERVED_ROLES = {"target", "dependency", "consumer", "test", "config", "related"}
 VALID_SECURITY_CLASSIFICATIONS = {"standard", "security-sensitive"}
+VALID_FRONTEND_SURFACES = {"marketing", "application", "content", "commerce", "admin", "component"}
+VALID_FRONTEND_INTENTS = {"refine", "redesign"}
+VALID_FRONTEND_DIMENSIONS = {
+    "visual-consistency",
+    "responsive-behavior",
+    "interaction-states",
+    "accessibility",
+    "content-layout-integrity",
+}
+VALID_DESIGN_CONTEXT_MODES = {"declared", "infer-existing-ui"}
 
 DEFAULT_CONTEXT_LIMITS = {
     "max_dependency_depth": 2,
@@ -26,7 +36,7 @@ DEFAULT_CONTEXT_LIMITS = {
 TASK_KEYS = {
     "schema_version", "task_id", "mode", "status", "request",
     "base_branch", "base_sha", "head_branch", "head_sha",
-    "targets", "context", "acceptance", "verification", "security", "uncertainties",
+    "targets", "context", "acceptance", "verification", "security", "frontend", "uncertainties",
 }
 CONTEXT_KEYS = {
     "symbols", "dependencies", "consumers", "tests", "config_files", "observed_files",
@@ -39,6 +49,9 @@ SECURITY_KEYS = {
     "classification", "surfaces", "trust_boundaries", "abuse_cases",
     "controls", "evidence", "head_sha", "limitations",
 }
+FRONTEND_KEYS = {"surface", "intent", "design_context", "acceptance_dimensions", "visual_qa"}
+DESIGN_CONTEXT_KEYS = {"path", "mode"}
+VISUAL_QA_KEYS = {"max_rounds", "browser_tooling", "evidence", "head_sha", "limitations"}
 
 
 class ManifestError(ValueError):
@@ -189,6 +202,60 @@ def validate_task_manifest(data: Mapping[str, Any]) -> None:
             if verification_status == "PASS_VERIFIED":
                 _require(security_head == data["head_sha"], "security evidence must belong to current head_sha")
                 _require(bool(evidence), "security-sensitive PASS_VERIFIED requires security evidence")
+
+    frontend = data.get("frontend")
+    if frontend is not None:
+        _require(isinstance(frontend, Mapping), "frontend must be an object")
+        _reject_unknown_keys(frontend, FRONTEND_KEYS, "frontend")
+        _require(frontend.get("surface") in VALID_FRONTEND_SURFACES, "invalid frontend surface")
+        _require(frontend.get("intent") in VALID_FRONTEND_INTENTS, "invalid frontend intent")
+
+        design_context = frontend.get("design_context")
+        _require(isinstance(design_context, Mapping), "frontend.design_context must be an object")
+        _reject_unknown_keys(design_context, DESIGN_CONTEXT_KEYS, "frontend.design_context")
+        design_path = design_context.get("path")
+        _require(
+            design_path is None or (isinstance(design_path, str) and bool(design_path.strip())),
+            "frontend.design_context.path must be null or a non-empty string",
+        )
+        _require(
+            design_context.get("mode") in VALID_DESIGN_CONTEXT_MODES,
+            "invalid frontend design-context mode",
+        )
+
+        dimensions = frontend.get("acceptance_dimensions")
+        _require(isinstance(dimensions, list) and bool(dimensions), "frontend.acceptance_dimensions must be a non-empty list")
+        _require(len(dimensions) == len(set(dimensions)), "frontend.acceptance_dimensions must be unique")
+        for dimension in dimensions:
+            _require(dimension in VALID_FRONTEND_DIMENSIONS, f"invalid frontend acceptance dimension: {dimension}")
+
+        visual_qa = frontend.get("visual_qa")
+        _require(isinstance(visual_qa, Mapping), "frontend.visual_qa must be an object")
+        _reject_unknown_keys(visual_qa, VISUAL_QA_KEYS, "frontend.visual_qa")
+        max_rounds = visual_qa.get("max_rounds")
+        _require(
+            isinstance(max_rounds, int) and not isinstance(max_rounds, bool) and 1 <= max_rounds <= 2,
+            "frontend.visual_qa.max_rounds must be an integer between 1 and 2",
+        )
+        _require_string_list(visual_qa.get("browser_tooling"), "frontend.visual_qa.browser_tooling")
+        frontend_evidence = visual_qa.get("evidence")
+        _require(isinstance(frontend_evidence, list), "frontend.visual_qa.evidence must be a list")
+        for ev in frontend_evidence:
+            _require(isinstance(ev, Mapping), "frontend visual evidence entries must be objects")
+            _reject_unknown_keys(ev, EVIDENCE_KEYS, "frontend visual evidence")
+            _require_string(ev.get("type"), "frontend visual evidence type")
+            _require_string(ev.get("ref"), "frontend visual evidence ref")
+        frontend_head = visual_qa.get("head_sha")
+        _require(
+            frontend_head is None or (isinstance(frontend_head, str) and bool(frontend_head.strip())),
+            "frontend.visual_qa.head_sha must be null or a non-empty string",
+        )
+        _require_string_list(visual_qa.get("limitations"), "frontend.visual_qa.limitations")
+        if frontend_evidence:
+            _require(
+                frontend_head == data["head_sha"],
+                "frontend visual evidence must belong to current head_sha",
+            )
 
     _require_string_list(data.get("uncertainties"), "uncertainties")
 
@@ -358,10 +425,17 @@ def verification_is_current(manifest: Mapping[str, Any]) -> bool:
             security.get("head_sha") == manifest["head_sha"]
             and bool(security.get("evidence"))
         )
+    frontend = manifest.get("frontend")
+    frontend_current = True
+    if isinstance(frontend, Mapping):
+        visual_qa = frontend.get("visual_qa")
+        if isinstance(visual_qa, Mapping) and visual_qa.get("evidence"):
+            frontend_current = visual_qa.get("head_sha") == manifest["head_sha"]
     return (
         verification["status"] == "PASS_VERIFIED"
         and verification["head_sha"] == manifest["head_sha"]
         and security_current
+        and frontend_current
     )
 
 
@@ -389,5 +463,11 @@ def update_manifest_head(manifest: Mapping[str, Any], head_sha: str) -> dict[str
     if isinstance(security, Mapping) and security.get("head_sha") != head_sha:
         security["head_sha"] = None
         security["evidence"] = []
+    frontend = result.get("frontend")
+    if isinstance(frontend, Mapping):
+        visual_qa = frontend.get("visual_qa")
+        if isinstance(visual_qa, Mapping) and visual_qa.get("head_sha") != head_sha:
+            visual_qa["head_sha"] = None
+            visual_qa["evidence"] = []
     validate_task_manifest(result)
     return result

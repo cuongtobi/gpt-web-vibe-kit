@@ -36,4 +36,17 @@ class RetrievalTests(unittest.TestCase):
     def test_rails_bootstrap_detection(self):
         context = detect_project_context(FIXTURES / "rails-small"); self.assertIn("ruby", context["languages"]); self.assertIn("rails", context["frameworks"]); self.assertIn("bundle exec rails test", context["verification"]["commands"])
 
+    def test_collect_project_files_includes_frontend_assets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "styles").mkdir()
+            (root / "styles/site.css").write_text(".nav { display: flex; }\n", encoding="utf-8")
+            (root / "index.html").write_text("<nav class='nav'>Home</nav>\n", encoding="utf-8")
+            (root / "Widget.vue").write_text("<template><button>Go</button></template>\n", encoding="utf-8")
+            files = retrieval.collect_project_files(root)
+            self.assertIn("styles/site.css", files)
+            self.assertIn("index.html", files)
+            self.assertIn("Widget.vue", files)
+
+
 if __name__ == "__main__": unittest.main()

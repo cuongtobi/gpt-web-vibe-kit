@@ -181,6 +181,85 @@ class StateTests(unittest.TestCase):
         self.assertEqual(updated["security"]["evidence"], [])
         self.assertIsNone(updated["verification"]["status"])
 
+    def test_frontend_manifest_is_optional_and_valid(self):
+        manifest = task_manifest()
+        validate_task_manifest(manifest)
+        manifest["frontend"] = {
+            "surface": "component",
+            "intent": "redesign",
+            "design_context": {"path": "DESIGN.md", "mode": "declared"},
+            "acceptance_dimensions": [
+                "visual-consistency",
+                "responsive-behavior",
+                "accessibility",
+            ],
+            "visual_qa": {
+                "max_rounds": 2,
+                "browser_tooling": ["playwright"],
+                "evidence": [],
+                "head_sha": None,
+                "limitations": [],
+            },
+        }
+        validate_task_manifest(manifest)
+
+    def test_frontend_visual_qa_is_bounded(self):
+        manifest = task_manifest()
+        manifest["frontend"] = {
+            "surface": "application",
+            "intent": "refine",
+            "design_context": {"path": None, "mode": "infer-existing-ui"},
+            "acceptance_dimensions": ["visual-consistency"],
+            "visual_qa": {
+                "max_rounds": 3,
+                "browser_tooling": [],
+                "evidence": [],
+                "head_sha": None,
+                "limitations": [],
+            },
+        }
+        with self.assertRaises(ManifestError):
+            validate_task_manifest(manifest)
+
+    def test_frontend_visual_evidence_requires_current_head(self):
+        manifest = task_manifest()
+        manifest["frontend"] = {
+            "surface": "marketing",
+            "intent": "redesign",
+            "design_context": {"path": None, "mode": "infer-existing-ui"},
+            "acceptance_dimensions": ["visual-consistency", "responsive-behavior"],
+            "visual_qa": {
+                "max_rounds": 2,
+                "browser_tooling": ["playwright"],
+                "evidence": [{"type": "screenshot", "ref": "artifact://desktop-home"}],
+                "head_sha": "old-head",
+                "limitations": [],
+            },
+        }
+        with self.assertRaises(ManifestError):
+            validate_task_manifest(manifest)
+        manifest["frontend"]["visual_qa"]["head_sha"] = "head123"
+        validate_task_manifest(manifest)
+
+    def test_new_head_invalidates_frontend_visual_evidence(self):
+        manifest = task_manifest()
+        manifest["frontend"] = {
+            "surface": "component",
+            "intent": "refine",
+            "design_context": {"path": None, "mode": "infer-existing-ui"},
+            "acceptance_dimensions": ["interaction-states", "accessibility"],
+            "visual_qa": {
+                "max_rounds": 2,
+                "browser_tooling": ["cypress"],
+                "evidence": [{"type": "browser-check", "ref": "cypress:navbar"}],
+                "head_sha": "head123",
+                "limitations": [],
+            },
+        }
+        updated = update_manifest_head(manifest, "head456")
+        self.assertIsNone(updated["frontend"]["visual_qa"]["head_sha"])
+        self.assertEqual(updated["frontend"]["visual_qa"]["evidence"], [])
+
     def test_project_context_template_valid(self):
         root = Path(__file__).resolve().parents[1]; data = json.loads((root / "templates/project/.vibe/project-context.json").read_text(encoding="utf-8")); validate_project_context(data)
 

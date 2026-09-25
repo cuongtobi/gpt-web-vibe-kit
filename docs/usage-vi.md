@@ -621,7 +621,7 @@ storage boundary
 authorization
 ```
 
-Với các task này, lưu `security` state trong manifest v2 và bắt buộc current-head security diff review + targeted tests/checks + scanner/dependency-audit evidence khi có/phù hợp. Thiếu tooling phải ghi limitation explicit, không được silent pass.
+Với các task này, lưu `security` state trong manifest v2 và bắt buộc current-head security diff review + targeted tests/checks + scanner/dependency-audit evidence khi có/phù hợp. Runtime còn tạo candidate bảo thủ từ request/path/symbol; nếu review vẫn giữ candidate task là `standard`, phải ghi `security.candidate_disposition` không rỗng. Thiếu tooling phải ghi limitation explicit, không được silent pass.
 
 ## 25. Verify only
 
@@ -638,6 +638,14 @@ Status:
 - `PASS_VERIFIED`
 - `FAIL_VERIFICATION`
 - `NEEDS_VERIFICATION_CONFIG`
+
+PASS yêu cầu mọi acceptance criterion đều `met` và có structured evidence. Trước khi chuyển sang `ready`/`complete`, chạy completion gate có config:
+
+```bash
+python runtime/vibe_web.py completion-status task.json --config .vibe/config.json
+```
+
+Gate này còn kiểm tra verification command bắt buộc, security-candidate disposition, frontend `acceptance_map`, và evidence frontend/security đúng current head.
 
 ---
 
@@ -733,7 +741,8 @@ failed run
 -> root cause
 -> scoped fix
 -> new head
--> old PASS/CI stale
+-> toàn bộ verification outcome/head/run cũ stale và bị clear
+-> ready/complete quay lại verifying
 -> verify new head
 ```
 

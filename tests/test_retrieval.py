@@ -3,7 +3,13 @@ import unittest
 from pathlib import Path
 
 from install import detect_project_context
-from runtime.retrieval import collect_project_files, extract_symbols, iterative_retrieve, query_tokens
+from runtime.retrieval import (
+    collect_project_files,
+    extract_symbols,
+    iterative_retrieve,
+    iterative_retrieve_diagnostics,
+    query_tokens,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests" / "fixtures"
@@ -36,6 +42,42 @@ class RetrievalTests(unittest.TestCase):
 
     def test_rails_bootstrap_detection(self):
         context = detect_project_context(FIXTURES / "rails-small"); self.assertIn("ruby", context["languages"]); self.assertIn("rails", context["frameworks"]); self.assertIn("bundle exec rails test", context["verification"]["commands"])
+
+    def test_retrieval_diagnostics_explain_selection(self):
+        results = iterative_retrieve_diagnostics(
+            FIXTURES / "fastapi-small",
+            "Fix refresh token after session expiry",
+            max_files=4,
+        )
+        self.assertTrue(results)
+        self.assertIn("path", results[0])
+        self.assertIn("score", results[0])
+        self.assertIn("round", results[0])
+        self.assertTrue(results[0]["reasons"])
+
+    def test_retrieval_uses_configured_round_limit(self):
+        config = {"context": {"max_search_rounds": 1, "max_symbol_hints": 1}}
+        results = iterative_retrieve_diagnostics(
+            FIXTURES / "fastapi-small",
+            "Fix refresh token after session expiry",
+            config=config,
+            max_files=8,
+            per_round=2,
+        )
+        self.assertTrue(results)
+        self.assertTrue(all(item["round"] == 1 for item in results))
+        self.assertLessEqual(len(results), 2)
+
+    def test_scan_budget_prioritizes_shallow_paths_over_early_deep_tree(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            deep = root / "aaa" / "nested"
+            deep.mkdir(parents=True)
+            for index in range(5):
+                (deep / f"{index}.py").write_text("value = 1\n", encoding="utf-8")
+            (root / "zzz.py").write_text("def important_entrypoint():\n    pass\n", encoding="utf-8")
+            files = collect_project_files(root, scan_limit=2)
+            self.assertIn("zzz.py", files)
 
     def test_collect_project_files_includes_frontend_assets(self):
         with tempfile.TemporaryDirectory() as tmp:

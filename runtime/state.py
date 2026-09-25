@@ -190,7 +190,10 @@ def validate_task_manifest(data: Mapping[str, Any]) -> None:
     _require(not missing, "referenced context files must appear in observed_files: " + ", ".join(missing))
 
     acceptance = data.get("acceptance")
-    _require(isinstance(acceptance, list), "acceptance must be a list")
+    _require(
+        isinstance(acceptance, list) and bool(acceptance),
+        "acceptance must be a non-empty list",
+    )
     ids: set[str] = set()
     for item in acceptance:
         _require(isinstance(item, Mapping), "acceptance entries must be objects")

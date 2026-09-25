@@ -203,6 +203,24 @@ class StateTests(unittest.TestCase):
         }
         validate_task_manifest(manifest)
 
+    def test_frontend_acceptance_dimensions_reject_non_strings(self):
+        manifest = task_manifest()
+        manifest["frontend"] = {
+            "surface": "application",
+            "intent": "refine",
+            "design_context": {"path": None, "mode": "infer-existing-ui"},
+            "acceptance_dimensions": [{"unexpected": "object"}],
+            "visual_qa": {
+                "max_rounds": 2,
+                "browser_tooling": [],
+                "evidence": [],
+                "head_sha": None,
+                "limitations": [],
+            },
+        }
+        with self.assertRaises(ManifestError):
+            validate_task_manifest(manifest)
+
     def test_frontend_visual_qa_is_bounded(self):
         manifest = task_manifest()
         manifest["frontend"] = {

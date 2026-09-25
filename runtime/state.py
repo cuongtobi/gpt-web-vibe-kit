@@ -225,9 +225,10 @@ def validate_task_manifest(data: Mapping[str, Any]) -> None:
 
         dimensions = frontend.get("acceptance_dimensions")
         _require(isinstance(dimensions, list) and bool(dimensions), "frontend.acceptance_dimensions must be a non-empty list")
-        _require(len(dimensions) == len(set(dimensions)), "frontend.acceptance_dimensions must be unique")
         for dimension in dimensions:
+            _require(isinstance(dimension, str), "frontend acceptance dimensions must be strings")
             _require(dimension in VALID_FRONTEND_DIMENSIONS, f"invalid frontend acceptance dimension: {dimension}")
+        _require(len(dimensions) == len(set(dimensions)), "frontend.acceptance_dimensions must be unique")
 
         visual_qa = frontend.get("visual_qa")
         _require(isinstance(visual_qa, Mapping), "frontend.visual_qa must be an object")
@@ -237,7 +238,9 @@ def validate_task_manifest(data: Mapping[str, Any]) -> None:
             isinstance(max_rounds, int) and not isinstance(max_rounds, bool) and 1 <= max_rounds <= 2,
             "frontend.visual_qa.max_rounds must be an integer between 1 and 2",
         )
-        _require_string_list(visual_qa.get("browser_tooling"), "frontend.visual_qa.browser_tooling")
+        browser_tooling = visual_qa.get("browser_tooling")
+        _require_string_list(browser_tooling, "frontend.visual_qa.browser_tooling")
+        _require(len(browser_tooling) == len(set(browser_tooling)), "frontend.visual_qa.browser_tooling must be unique")
         frontend_evidence = visual_qa.get("evidence")
         _require(isinstance(frontend_evidence, list), "frontend.visual_qa.evidence must be a list")
         for ev in frontend_evidence:

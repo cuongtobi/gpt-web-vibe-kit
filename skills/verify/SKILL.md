@@ -29,7 +29,7 @@ Produce meaningful evidence for the current PR head and map it to the task's acc
     - established project-native security scanner when available in the authorized environment;
     - ecosystem dependency-vulnerability check when dependencies/package changes or the affected surface make it relevant and the command is available;
     - explicit unavailable/not-configured notes for missing tooling and remaining limitations.
-12. Map every acceptance item/ to structured evidence.
+12. Map every acceptance item to structured evidence.
 
 ## Frontend evidence binding
 

@@ -26,6 +26,10 @@ Implement the planned behavior with the smallest correct and reviewable diff.
 - Every changed line should be explainable by the request, an acceptance criterion, a regression test, a compatibility/security requirement, or cleanup made necessary by this patch. If it cannot be traced to one of those, remove it or explicitly re-plan the scope.
 - If implementation grows materially beyond the planned shape, revisit the plan before continuing rather than normalizing the extra complexity after the fact.
 
+## Frontend tasks
+
+When the manifest carries `frontend`, or current evidence clearly shows UI work that planning missed, read `../vibe/reference/frontend-policy.md` before the first UI edit and update the manifest classification if needed. Preserve-versus-redesign intent is a scope constraint. Reuse the incumbent design system, read optional `DESIGN.md` when present, and implement only materially relevant frontend acceptance dimensions. Do not introduce a separate design workflow or install visual tooling merely because frontend policy applies.
+
 ## Comment and documentation policy
 - Prefer names and structure that make code self-explanatory.
 - Comment **why**, invariants, constraints, tradeoffs and deliberate workarounds; do not narrate obvious statements, assignments, branches or calls.
@@ -76,7 +80,7 @@ Change docs/examples/metadata and only the minimum source/config needed to keep 
 1. Review the diff.
 2. Refresh paths, symbols, roles, depths and blob SHAs.
 3. Update manifest `head_sha`.
-4. A changed head invalidates older `PASS_VERIFIED` evidence and any `security.evidence` bound to an older security `head_sha`.
+4. A changed head invalidates older `PASS_VERIFIED` evidence, any `security.evidence` bound to an older security `head_sha`, and any `frontend.visual_qa.evidence` bound to an older frontend visual-QA `head_sha`.
 5. Set task status to `verifying`.
 6. Hand off to `verify`.
 

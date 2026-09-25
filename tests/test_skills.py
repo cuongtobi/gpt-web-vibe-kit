@@ -76,6 +76,29 @@ class SkillTests(unittest.TestCase):
         self.assertIn("changed-line traceability", review)
         self.assertIn("Behavioral Coding Policy", bootstrap)
 
+    def test_lightweight_frontend_policy_is_wired_into_existing_workflow(self):
+        root = Path(__file__).resolve().parents[1]
+        policy = (root / "skills/vibe/reference/frontend-policy.md").read_text(encoding="utf-8")
+        self.assertIn("Preserve versus redesign", policy)
+        self.assertIn("DESIGN.md", policy)
+        self.assertIn("max_rounds", policy)
+        self.assertIn("frontend-capable framework by itself", policy)
+
+        for relative in ("skills/plan/SKILL.md", "skills/build/SKILL.md", "skills/verify/SKILL.md"):
+            with self.subTest(relative=relative):
+                text = (root / relative).read_text(encoding="utf-8")
+                self.assertIn("../vibe/reference/frontend-policy.md", text)
+
+        session = (root / "skills/session/SKILL.md").read_text(encoding="utf-8")
+        review = (root / "skills/github-review/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("frontend.visual_qa.head_sha", session)
+        self.assertIn("frontend.visual_qa.evidence", review)
+
+        english = (root / "README.md").read_text(encoding="utf-8")
+        vietnamese = (root / "README_vi.md").read_text(encoding="utf-8")
+        self.assertIn("Optional frontend state", english)
+        self.assertIn("Frontend state tùy chọn", vietnamese)
+
     def test_vibe_skill_lists_test_and_docs_modes(self):
         root = Path(__file__).resolve().parents[1]
         text = (root / "skills/vibe/SKILL.md").read_text(encoding="utf-8")

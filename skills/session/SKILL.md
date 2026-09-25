@@ -16,11 +16,11 @@ Reconstruct enough current context to continue safely without loading the whole 
    - otherwise the uniquely matching open vibe PR;
    - list candidates instead of guessing when ambiguous.
 4. Read the selected PR metadata/body.
-5. Require exactly one manifest block and `schema_version: 2`. Restore manifest `security` classification/surfaces/evidence when present; older v2 manifests without it remain readable for compatibility.
+5. Require exactly one manifest block and `schema_version: 2`. Restore optional manifest `frontend` surface/intent/design context/visual-QA state and `security` classification/surfaces/evidence when present; older v2 manifests without either optional block remain readable for compatibility.
 6. Read the current PR changed filenames/diff.
 7. Fetch current blob SHAs for every observed file from the PR head.
 8. Apply the hard budget from `.vibe/config.json` before expanding context.
-9. Treat security evidence as stale when `security.head_sha` does not match the current PR head. Do not carry old security evidence forward as current proof.
+9. Treat security evidence as stale when `security.head_sha` does not match the current PR head. Treat recorded frontend visual evidence as stale when `frontend.visual_qa.head_sha` does not match the current PR head. Do not carry either forward as current proof.
 
 A duplicate/mismatched manifest block is invalid. A v1 task must be rebuilt into v2 from current GitHub state before normal continuation.
 
@@ -62,4 +62,4 @@ Use when:
 Never load the whole repository by default.
 
 ## Output
-Return context state, selected PR/head SHA, files loaded, stale references refreshed, budget usage, restored security classification/evidence freshness, and remaining uncertainty.
+Return context state, selected PR/head SHA, files loaded, stale references refreshed, budget usage, restored frontend/security state and evidence freshness, and remaining uncertainty.

@@ -1,6 +1,7 @@
 {
   "id": "react",
   "kind": "framework",
+  "frontend": true,
   "language": "javascript",
   "search": {
     "context": ["components", "hooks", "stores/context", "API/data adapters"],

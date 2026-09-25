@@ -1,6 +1,7 @@
 {
   "id": "sveltekit",
   "kind": "framework",
+  "frontend": true,
   "language": "typescript",
   "search": {
     "context": ["routes", "+page/+layout/+server files", "hooks", "stores", "server/client boundaries"],

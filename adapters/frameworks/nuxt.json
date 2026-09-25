@@ -1,6 +1,7 @@
 {
   "id": "nuxt",
   "kind": "framework",
+  "frontend": true,
   "language": "typescript",
   "search": {
     "context": ["pages", "server/api", "plugins", "middleware", "composables", "components"],

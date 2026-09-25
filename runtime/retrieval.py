@@ -30,6 +30,7 @@ STOPWORDS = {
 
 CODE_SUFFIXES = {
     ".py", ".js", ".jsx", ".ts", ".tsx", ".rb", ".php", ".go", ".rs", ".java",
+    ".vue", ".svelte", ".astro", ".html", ".htm", ".css", ".scss", ".sass", ".less",
     ".json", ".yml", ".yaml", ".toml", ".ini", ".cfg", ".md",
 }
 SKIP_DIRS = {

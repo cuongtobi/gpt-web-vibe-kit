@@ -474,15 +474,34 @@ Analyze breaking changes relevant to this repository, not the entire upstream ch
 
 ## 20. Frontend feature
 
+Frontend work stays in the same workflow; there is no separate design/polish/audit command. Classify it from concrete request/target evidence, not from framework presence alone.
+
 Typical bounded context:
 
 ```text
 route/page
 -> component
+-> theme/tokens/styles
 -> hook/composable/store
 -> API/data layer
 -> tests
 ```
+
+When applicable, persist the optional manifest `frontend` block. Use `intent: refine` for local UI improvement that preserves the current visual language; use `redesign` only when the request authorizes a visual-language change.
+
+`DESIGN.md` is optional. Read it when present and relevant; otherwise infer the incumbent design system from bounded current tokens/theme/shared components/styles/nearby screens. Do not create it merely because it is absent.
+
+Select only materially relevant acceptance dimensions from:
+
+```text
+visual-consistency
+responsive-behavior
+interaction-states
+accessibility
+content-layout-integrity
+```
+
+Visual QA reuses existing browser/E2E/story/screenshot tooling only and is bounded to one inspection round plus at most one confirmation round. If visual tooling is unavailable, record the limitation and do not claim visual behavior was verified.
 
 For Next.js/Nuxt/SvelteKit, inspect server/client boundaries and file-system routing.
 

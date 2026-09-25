@@ -1,6 +1,7 @@
 {
   "id": "vue",
   "kind": "framework",
+  "frontend": true,
   "language": "typescript",
   "search": {
     "context": ["components", "composables", "stores", "router", "API/data modules"],

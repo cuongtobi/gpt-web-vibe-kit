@@ -1,6 +1,7 @@
 {
   "id": "svelte",
   "kind": "framework",
+  "frontend": true,
   "language": "typescript",
   "search": {
     "context": ["components", "stores", "actions", "API/data modules"],

@@ -106,6 +106,37 @@ Every managed PR contains **exactly one** block:
 
 Duplicate/mismatched manifest markers are invalid. Schema v1 tasks must be rebuilt into v2 from current GitHub state before normal continuation.
 
+### Optional frontend state
+
+Frontend work uses the same manifest v2 and the same workflow. Only UI tasks add an optional `frontend` block:
+
+```json
+{
+  "frontend": {
+    "surface": "application",
+    "intent": "refine",
+    "design_context": {
+      "path": null,
+      "mode": "infer-existing-ui"
+    },
+    "acceptance_dimensions": [
+      "visual-consistency",
+      "responsive-behavior",
+      "accessibility"
+    ],
+    "visual_qa": {
+      "max_rounds": 2,
+      "browser_tooling": [],
+      "evidence": [],
+      "head_sha": null,
+      "limitations": []
+    }
+  }
+}
+```
+
+The classifier is deliberately conservative: React/Next/Vue/etc. presence alone is not enough. Request/target evidence must reach the UI. `DESIGN.md` is optional; if absent, the agent infers the incumbent visual system from bounded current UI code. Frontend verification reuses existing project tooling and never installs a browser runtime solely for this policy. Recorded visual evidence is bound to the current PR head; unavailable visual tooling is reported as a limitation.
+
 ## Hard context budget
 
 `.vibe/config.json` contains enforced limits:

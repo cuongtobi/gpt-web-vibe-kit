@@ -1,6 +1,7 @@
 {
   "id": "vite",
   "kind": "framework",
+  "frontend_tooling": true,
   "language": "typescript",
   "search": {
     "context": ["vite config", "plugins", "aliases", "entrypoints", "env handling"],

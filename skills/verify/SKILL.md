@@ -21,14 +21,19 @@ Produce meaningful evidence for the current PR head and map it to the task's acc
    - no adjacent refactor, rename, reformat, or cleanup is mixed into the task merely because it was noticed;
    - error/edge handling covers plausible states under established contracts without invented defensive branches for provably impossible states.
 8. Review comments/documentation in touched code: require rationale where non-obvious decisions would otherwise be misread; remove/reject comments that merely narrate code; confirm touched comments/docstrings/docs are not stale and TODO/FIXME notes are actionable.
-9. Re-classify security from both the plan and the final diff. If either shows authentication, authorization, sessions, tokens, passwords, upload/filesystem, user-controlled database queries or URLs, HTML/template rendering, command/process execution, payments/webhooks, secrets/credentials or another comparable trust boundary, treat the task as security-sensitive even if planning missed it.
-10. For every security-sensitive task, produce explicit current-head security evidence:
+9. If the manifest carries `frontend`, or the final diff reveals UI work, read `../vibe/reference/frontend-policy.md` and verify every materially relevant frontend acceptance dimension using the strongest established evidence. Prefer existing browser/E2E/story/screenshot tooling, never install visual tooling solely for this policy, and keep visual QA to at most one inspection round plus one confirmation round. Persist actual visual evidence in `frontend.visual_qa.evidence` with `frontend.visual_qa.head_sha` set to the current PR head; when visual tooling is unavailable, record the limitation explicitly instead of claiming visual behavior was verified.
+10. Re-classify security from both the plan and the final diff. If either shows authentication, authorization, sessions, tokens, passwords, upload/filesystem, user-controlled database queries or URLs, HTML/template rendering, command/process execution, payments/webhooks, secrets/credentials or another comparable trust boundary, treat the task as security-sensitive even if planning missed it.
+11. For every security-sensitive task, produce explicit current-head security evidence:
     - security-focused diff review against the recorded trust boundaries and abuse cases;
     - targeted negative/abuse-case tests or direct checks for affected security properties;
     - established project-native security scanner when available in the authorized environment;
     - ecosystem dependency-vulnerability check when dependencies/package changes or the affected surface make it relevant and the command is available;
     - explicit unavailable/not-configured notes for missing tooling and remaining limitations.
-11. Map every acceptance item to structured evidence.
+12. Map every acceptance item to structured evidence.
+
+## Frontend evidence binding
+
+Frontend quality remains part of normal acceptance, not a separate completion status. If `frontend.visual_qa.evidence` is non-empty, its `head_sha` must equal the current PR head. Missing browser tooling is a limitation, not automatic success or failure; acceptance criteria that genuinely require unproduced visual evidence remain unverified.
 
 ## Security evidence binding
 For a security-sensitive task, update manifest `security` so:

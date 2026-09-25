@@ -1,6 +1,7 @@
 {
   "id": "nextjs",
   "kind": "framework",
+  "frontend": true,
   "language": "typescript",
   "search": {
     "context": ["app/pages routes", "route handlers", "server/client components", "actions", "data/API modules"],

@@ -96,7 +96,8 @@ Mỗi PR do kit quản lý phải có **đúng một** block:
     "controls": ["rotation", "revocation", "authorization boundary", "sensitive-token logging protection"],
     "evidence": [],
     "head_sha": null,
-    "limitations": []
+    "limitations": [],
+    "candidate_disposition": null
   },
   "uncertainties": []
 }
@@ -124,6 +125,11 @@ Task frontend vẫn dùng manifest v2 và workflow hiện tại. Chỉ task th�
       "responsive-behavior",
       "accessibility"
     ],
+    "acceptance_map": {
+      "visual-consistency": ["AC1"],
+      "responsive-behavior": ["AC2"],
+      "accessibility": ["AC3"]
+    },
     "visual_qa": {
       "max_rounds": 2,
       "browser_tooling": [],
@@ -190,7 +196,7 @@ request/error/route keywords
 -> dừng theo budget
 ```
 
-Chỉ high-confidence identifiers được lưu vào `context.symbols`; không cache source trong manifest.
+Chỉ high-confidence identifiers được lưu vào `context.symbols`; không cache source trong manifest. Retrieval runtime có diagnostics cho path được chọn, score, round và lý do từ request/symbol. `max_search_rounds` và `max_symbol_hints` được dùng thật; khi scan bị giới hạn, path nông được ưu tiên trước subtree sâu.
 
 ## Modes
 
@@ -247,7 +253,17 @@ Authentication, authorization, session/token/password, upload/filesystem, databa
 
 Task manifest mới lưu object `security` gồm classification, surfaces, trust boundaries, abuse cases, controls, structured evidence, evidence head SHA và limitations. Manifest schema-v2 cũ chưa có `security` vẫn hợp lệ để backward-compatible; task security-sensitive đang active phải bổ sung block trước verify.
 
-Với task security-sensitive, lint/type/test/build hoặc runtime `PASS_VERIFIED` thông thường **chưa đủ**. Security evidence phải explicit và bind đúng current PR head. Scanner thiếu phải được ghi thành limitation, không được âm thầm coi là success.
+Với task security-sensitive, lint/type/test/build hoặc runtime `PASS_VERIFIED` thông thường **chưa đủ**. Security evidence phải explicit và bind đúng current PR head. Runtime tạo candidate bảo thủ từ request/path/symbol; nếu review vẫn giữ task là `standard`, `security.candidate_disposition` phải giải thích rõ lý do. Scanner thiếu phải được ghi thành limitation, không được âm thầm coi là success.
+
+## Completion gate
+
+`PASS_VERIFIED` chỉ hợp lệ khi mọi acceptance criterion đều `met` và có structured evidence. `ready` và `complete` cần current pass. Gate có config còn kiểm tra `verification.require_commands`, security-candidate disposition, frontend acceptance mapping và evidence frontend/security đúng current head. Khi head đổi, mọi verification outcome cũ bị clear và task từng ready/complete quay lại trạng thái verifying.
+
+```bash
+python runtime/vibe_web.py completion-status task.json --config .vibe/config.json
+```
+
+Config v2 giờ là strict contract và có JSON Schema riêng. CI validate template task/project/config bằng Draft 2020-12 JSON Schema ngoài runtime validator.
 
 ## Bootstrap
 
@@ -258,7 +274,7 @@ python install.py --target /path/to/project
 python install.py --target /path/to/project --dry-run
 ```
 
-Installer giữ nguyên `AGENTS.md` có sẵn, tạo `.vibe` contract và detect stack nhẹ từ manifest/file phổ biến. Hỗ trợ heuristic cho Python/FastAPI/Django/Flask, JS/TS/Next/React/Vue/Nuxt/Svelte/Vite/Nest/Express, Ruby/Rails, PHP/WordPress/Laravel, Go/Rust/Java và các verification command đã có.
+Installer giữ nguyên `AGENTS.md` có sẵn, tạo `.vibe` contract và detect stack nhẹ từ manifest/file phổ biến. Verification detection tôn trọng npm/pnpm/yarn/bun theo metadata/lockfile và không còn tự suy ra pytest chỉ vì có thư mục Python `tests/`. Hỗ trợ heuristic cho Python/FastAPI/Django/Flask, JS/TS/Next/React/Vue/Nuxt/Svelte/Vite/Nest/Express, Ruby/Rails, PHP/WordPress/Laravel, Go/Rust/Java và các verification command đã có.
 
 Trên ChatGPT Web, dùng `skills/bootstrap/SKILL.md` để tạo contract tương tự trực tiếp qua GitHub.
 
@@ -322,6 +338,7 @@ python runtime/vibe_web.py validate-project .vibe/project-context.json
 python runtime/vibe_web.py validate-task task.json --config .vibe/config.json
 python runtime/vibe_web.py validate-pr-body pr-body.md --config .vibe/config.json
 python runtime/vibe_web.py budget-status task.json --config .vibe/config.json
+python runtime/vibe_web.py completion-status task.json --config .vibe/config.json
 python runtime/vibe_web.py context-status task.json current-shas.json --config .vibe/config.json
 python runtime/vibe_web.py detect-project /path/to/project
 ```

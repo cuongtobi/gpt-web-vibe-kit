@@ -45,6 +45,37 @@ class SkillTests(unittest.TestCase):
         self.assertIn("security evidence", verify.lower())
         self.assertIn("security.evidence", review)
 
+    def test_behavioral_coding_policy_is_wired_into_workflow(self):
+        root = Path(__file__).resolve().parents[1]
+        agents = (root / "AGENTS.md").read_text(encoding="utf-8")
+        template = (root / "templates/project/AGENTS.md").read_text(encoding="utf-8")
+        plan = (root / "skills/plan/SKILL.md").read_text(encoding="utf-8")
+        build = (root / "skills/build/SKILL.md").read_text(encoding="utf-8")
+        verify = (root / "skills/verify/SKILL.md").read_text(encoding="utf-8")
+        vibe = (root / "skills/vibe/SKILL.md").read_text(encoding="utf-8")
+        review = (root / "skills/github-review/SKILL.md").read_text(encoding="utf-8")
+        bootstrap = (root / "skills/bootstrap/SKILL.md").read_text(encoding="utf-8")
+
+        for text in (agents, template):
+            self.assertIn("## Behavioral coding policy", text)
+            self.assertIn("Think before coding", text)
+            self.assertIn("Simplicity first", text)
+            self.assertIn("Surgical changes", text)
+            self.assertIn("Goal-driven execution", text)
+            self.assertIn("Changed-line traceability", text)
+
+        self.assertIn("## Behavioral planning rules", plan)
+        self.assertIn("minor/reversible ambiguity", plan)
+        self.assertIn("step -> verification evidence", plan)
+        self.assertIn("## Behavioral implementation policy", build)
+        self.assertIn("minimum code", build)
+        self.assertIn("Every changed line", build)
+        self.assertIn("every changed line traces", verify)
+        self.assertIn("## Behavioral orchestration", vibe)
+        self.assertIn("observable goals", vibe)
+        self.assertIn("changed-line traceability", review)
+        self.assertIn("Behavioral Coding Policy", bootstrap)
+
     def test_vibe_skill_lists_test_and_docs_modes(self):
         root = Path(__file__).resolve().parents[1]
         text = (root / "skills/vibe/SKILL.md").read_text(encoding="utf-8")

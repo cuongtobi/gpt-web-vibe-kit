@@ -8,6 +8,14 @@ description: Discovers a bounded symbol-aware target/dependency/consumer/test ne
 ## Goal
 Find the smallest safe change and persist enough current references for another ChatGPT Web session to resume.
 
+## Behavioral planning rules
+
+- Surface assumptions that materially affect the solution; do not silently choose between materially different interpretations.
+- Ask only when unresolved ambiguity can change behavior, public contracts, persisted data, security, compatibility, destructive effects, or task scope. For minor/reversible ambiguity, state the conservative assumption and proceed.
+- When a materially simpler approach satisfies the same acceptance behavior, prefer it and record the tradeoff instead of silently choosing a more elaborate design.
+- Do not turn uncertainty into speculative scope. Unknowns become explicit uncertainties/evidence gaps, not extra features or abstractions.
+- Express non-trivial implementation steps as **step -> verification evidence** so build and verify know what success means.
+
 ## Iterative symbol-aware retrieval
 Use GitHub search in bounded rounds; do not rely on filenames alone.
 
@@ -90,4 +98,4 @@ If an older valid schema-v2 task lacks `security`, it remains readable for compa
 Use stable IDs such as AC1. Each criterion contains an observable expected result, status and structured evidence list. Use `unverified`/empty evidence until real evidence exists.
 
 ## Output
-Summarize targets/symbols, bounded neighborhood, budget usage, ordered steps, verification plan, security classification/evidence plan, and uncertainties.
+Summarize material assumptions/tradeoffs, targets/symbols, bounded neighborhood, budget usage, ordered steps with verification evidence, security classification/evidence plan, and uncertainties.

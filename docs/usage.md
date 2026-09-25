@@ -547,6 +547,20 @@ The PR manifest may remain in `planning`.
 
 ---
 
+## Behavioral coding policy
+
+Apply these rules throughout the task:
+
+- state material assumptions/tradeoffs before implementation;
+- ask only when ambiguity can materially change behavior, contracts, data, security, compatibility, destructive effects, or scope;
+- for minor/reversible ambiguity, state a conservative assumption and continue;
+- prefer the simplest implementation that satisfies the acceptance criteria;
+- avoid speculative features, single-use abstractions and unrequested configurability;
+- keep the diff surgical: no unrelated refactor, rename, reformat or cleanup;
+- add defensive handling only for plausible states under established contracts;
+- require every changed line to trace to the request, acceptance evidence, required regression/compatibility/security work, or cleanup caused by the patch;
+- express non-trivial plan steps as **step -> verification evidence** and retry only when new evidence or a concrete change justifies it.
+
 ## Comment and documentation policy
 
 During build/review:

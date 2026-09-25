@@ -547,6 +547,20 @@ Manifest có thể giữ status `planning`.
 
 ---
 
+## Behavioral Coding Policy
+
+Áp dụng các rule sau xuyên suốt task:
+
+- nêu rõ material assumption/tradeoff trước implementation;
+- chỉ hỏi khi ambiguity có thể làm thay đổi behavior, contract, dữ liệu, security, compatibility, destructive effect hoặc scope;
+- với ambiguity nhỏ/reversible, nêu assumption bảo thủ rồi tiếp tục;
+- ưu tiên implementation đơn giản nhất thỏa acceptance criteria;
+- tránh feature suy đoán, abstraction chỉ dùng một lần và configurability không được yêu cầu;
+- giữ diff surgical: không refactor, rename, reformat hoặc cleanup ngoài scope;
+- chỉ thêm defensive handling cho trạng thái thực sự có thể xảy ra theo established contract;
+- mọi dòng thay đổi phải truy được về request, acceptance evidence, regression/compatibility/security work bắt buộc, hoặc cleanup do patch tạo ra;
+- biểu diễn step không-trivial theo dạng **step -> verification evidence** và chỉ retry khi có evidence mới hoặc thay đổi cụ thể.
+
 ## Comment & Documentation Policy
 
 Trong build/review:

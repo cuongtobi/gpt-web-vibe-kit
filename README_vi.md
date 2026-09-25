@@ -171,6 +171,18 @@ Chỉ high-confidence identifiers được lưu vào `context.symbols`; không c
 - `test` — test/coverage, mặc định không đổi production behavior
 - `docs` — README/docs/examples/metadata, chỉ đọc code tối thiểu để verify nội dung
 
+## Behavioral Coding Policy
+
+Kit áp dụng một behavioral policy xuyên suốt plan, build, verify và GitHub review:
+
+- **Think before coding:** nêu rõ assumption và tradeoff có ảnh hưởng thực tế. Chỉ hỏi khi ambiguity có thể đổi behavior, contract, dữ liệu, security, compatibility, destructive effect hoặc scope; ambiguity nhỏ, reversible có thể tiếp tục với assumption bảo thủ được nói rõ.
+- **Simplicity first:** viết lượng code tối thiểu cần thiết cho behavior đã chấp nhận. Tránh feature suy đoán, abstraction chỉ dùng một lần và configurability không được yêu cầu. Defensive branch chỉ xử lý trạng thái thực sự có thể xảy ra theo contract đã biết, không thêm case “bất khả thi” do agent tự tưởng tượng.
+- **Surgical changes:** không tự ý refactor, rename, reformat, cleanup hoặc xóa code không liên quan. Cleanup chỉ áp dụng cho artifact trở nên thừa do chính patch hiện tại.
+- **Goal-driven execution:** map các bước không-trivial với verification evidence quan sát được. Bug ưu tiên reproduce -> root cause -> regression -> minimal fix -> verify; refactor xác nhận behavior trước và sau.
+- **Changed-line traceability:** mỗi dòng thay đổi phải truy được về request, acceptance criterion, regression/compatibility/security evidence bắt buộc, hoặc cleanup do thay đổi này tạo ra.
+
+Các rule này ưu tiên diff nhỏ, dễ review nhưng không ép agent hỏi lại đối với quyết định low-risk và reversible.
+
 ## Comment & Documentation Policy
 
 Kit ưu tiên code tự giải thích bằng tên và cấu trúc. Comment dùng để giữ thông tin mà code không thể hiện rõ: **WHY**, constraint, invariant, tradeoff không hiển nhiên, security assumption, reasoning về performance/cache, edge case khó và workaround có chủ đích. Tránh comment kể lại code hiển nhiên hoặc docstring boilerplate cho private helper đơn giản. Public/shared contract nên được document khi caller cần biết behavior, error, side effect, lifecycle hoặc invariant. Comment/docstring/docs bị stale trong vùng sửa phải được cập nhật/xóa; TODO/FIXME phải actionable.

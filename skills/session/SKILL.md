@@ -20,7 +20,7 @@ Reconstruct enough current context to continue safely without loading the whole 
 6. Read the current PR changed filenames/diff.
 7. Fetch current blob SHAs for every observed file from the PR head.
 8. Apply the hard budget from `.vibe/config.json` before expanding context.
-9. Treat security evidence as stale when `security.head_sha` does not match the current PR head. Treat recorded frontend visual evidence as stale when `frontend.visual_qa.head_sha` does not match the current PR head. Do not carry either forward as current proof.
+9. Treat every verification outcome as stale when `verification.head_sha` does not match the current PR head; clear its head/run/status before reuse. Likewise treat security evidence as stale when `security.head_sha` mismatches and frontend visual evidence as stale when `frontend.visual_qa.head_sha` mismatches. A previously `ready`/`complete` task that moves to a new head returns to verification.
 
 A duplicate/mismatched manifest block is invalid. A v1 task must be rebuilt into v2 from current GitHub state before normal continuation.
 

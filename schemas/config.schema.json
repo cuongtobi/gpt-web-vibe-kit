@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GPT Web Vibe Config v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "workflow",
+    "manifest_schema_version",
+    "kit_repository",
+    "github",
+    "context",
+    "verification"
+  ],
+  "properties": {
+    "version": {
+      "const": 2
+    },
+    "workflow": {
+      "const": "github-native"
+    },
+    "manifest_schema_version": {
+      "const": 2
+    },
+    "kit_repository": {
+      "type": "string",
+      "minLength": 1
+    },
+    "github": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_state",
+        "branch_prefix"
+      ],
+      "properties": {
+        "task_state": {
+          "const": "pull_request_body"
+        },
+        "branch_prefix": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_dependency_depth",
+        "max_source_files",
+        "max_test_files",
+        "max_related_modules",
+        "rebuild_changed_ratio",
+        "max_search_rounds",
+        "max_symbol_hints"
+      ],
+      "properties": {
+        "max_dependency_depth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_source_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_test_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_related_modules": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rebuild_changed_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_search_rounds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_symbol_hints": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "require_commands",
+        "commands"
+      ],
+      "properties": {
+        "require_commands": {
+          "type": "boolean"
+        },
+        "commands": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

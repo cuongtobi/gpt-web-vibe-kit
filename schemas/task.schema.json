@@ -226,7 +226,8 @@
             }
           }
         }
-      }
+      },
+      "minItems": 1
     },
     "verification": {
       "type": "object",

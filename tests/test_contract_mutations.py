@@ -31,6 +31,10 @@ class ContractMutationTests(unittest.TestCase):
 
         mutations = []
 
+        empty_acceptance = json.loads(json.dumps(base))
+        empty_acceptance["acceptance"] = []
+        mutations.append(("empty acceptance", empty_acceptance))
+
         pending = json.loads(json.dumps(base))
         pending["acceptance"][0]["status"] = "pending"
         mutations.append(("pending acceptance", pending))

@@ -171,6 +171,18 @@ High-confidence identifiers are persisted in `context.symbols`; source code is n
 - `test` — test/coverage work without production behavior change by default
 - `docs` — documentation/examples/metadata with minimal code context
 
+## Behavioral coding policy
+
+The kit applies a shared behavioral policy throughout planning, implementation, verification, and GitHub review:
+
+- **Think before coding:** surface material assumptions and tradeoffs. Ask when ambiguity can change behavior, contracts, data, security, compatibility, destructive effects, or scope; minor reversible ambiguity may proceed with an explicit conservative assumption.
+- **Simplicity first:** implement the minimum code needed for accepted behavior. Avoid speculative features, single-use abstractions, and unrequested configurability. Defensive branches should correspond to plausible states under established contracts, not invented impossible scenarios.
+- **Surgical changes:** avoid unrelated refactors, renames, formatting, cleanup, or deletion. Cleanup is limited to artifacts made obsolete by the current patch.
+- **Goal-driven execution:** map non-trivial steps to observable verification evidence. Bugs prefer reproduce -> root cause -> regression -> minimal fix -> verify; refactors establish behavior before and after.
+- **Changed-line traceability:** every changed line must trace to the request, an acceptance criterion, required regression/compatibility/security evidence, or cleanup caused by the change.
+
+These rules bias the workflow toward small, reviewable diffs without forcing unnecessary clarification for low-risk reversible decisions.
+
 ## Comment and documentation policy
 
 The kit prefers self-explanatory code and uses comments to preserve information the code cannot express clearly. Comment **why**, constraints, invariants, non-obvious tradeoffs, security assumptions, performance/cache reasoning, tricky edge cases and deliberate workarounds. Avoid narration of obvious code and boilerplate docstrings for simple private helpers. Public/shared contracts should be documented when callers need behavior, errors, side effects, lifecycle or invariants. Touched stale comments/docstrings/docs must be updated or removed, and TODO/FIXME notes must be actionable.

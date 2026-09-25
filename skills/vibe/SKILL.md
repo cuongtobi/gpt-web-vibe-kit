@@ -8,6 +8,13 @@ description: Orchestrates an end-to-end GitHub-native code change on ChatGPT Web
 ## Goal
 Complete one repository change with bounded context and evidence tied to the current GitHub head.
 
+## Behavioral orchestration
+
+- Convert the request into observable goals before implementation; each non-trivial step should have a corresponding check or evidence source.
+- Surface materially consequential assumptions early. Do not interrupt autonomous execution for minor, reversible ambiguity that can be handled with a stated conservative assumption.
+- Prefer the simplest scoped solution that satisfies the acceptance criteria; complexity must be justified by an actual constraint, boundary, or verified need.
+- Keep retries evidence-driven: diagnose -> change -> re-check. Do not churn through rewrites without new evidence.
+
 ## Procedure
 1. Apply `session`.
 2. Classify the request as `feature`, `change`, `bug_fix`, `refactor`, `hotfix`, `test`, or `docs`.

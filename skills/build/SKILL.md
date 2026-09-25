@@ -15,6 +15,17 @@ Implement the planned behavior with the smallest correct and reviewable diff.
 4. Read only the target/dependency/consumer/test files required for implementation.
 5. Preserve unrelated changes.
 
+## Behavioral implementation policy
+
+- Implement the minimum code that satisfies the accepted behavior and constraints. Do not add speculative features, future-proofing layers, or configurability that is not required by the task.
+- Prefer an existing direct pattern over a new abstraction when the abstraction has only one current use and no concrete boundary, variation, reuse, or testing need.
+- Add defensive/error handling for plausible states under established contracts. Do not create branches for states that are provably impossible solely to appear defensive.
+- Make surgical changes: do not refactor, rename, reformat, comment-clean, or delete unrelated existing code. If unrelated dead/problematic code is discovered, report it instead of folding it into the patch.
+- Clean up imports, variables, helpers, tests, or files made obsolete by **this change**; do not treat pre-existing cleanup as implicitly authorized.
+- Match established project style even when another style would also be reasonable.
+- Every changed line should be explainable by the request, an acceptance criterion, a regression test, a compatibility/security requirement, or cleanup made necessary by this patch. If it cannot be traced to one of those, remove it or explicitly re-plan the scope.
+- If implementation grows materially beyond the planned shape, revisit the plan before continuing rather than normalizing the extra complexity after the fact.
+
 ## Comment and documentation policy
 - Prefer names and structure that make code self-explanatory.
 - Comment **why**, invariants, constraints, tradeoffs and deliberate workarounds; do not narrate obvious statements, assignments, branches or calls.

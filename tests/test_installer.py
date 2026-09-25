@@ -28,6 +28,15 @@ class InstallerTests(unittest.TestCase):
             self.assertIn("fastapi", context["frameworks"])
             self.assertIn("pytest", context["verification"]["commands"])
 
+    def test_new_project_agents_include_behavioral_policy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            install.install(target)
+            agents = (target / "AGENTS.md").read_text(encoding="utf-8")
+            self.assertIn("## Behavioral coding policy", agents)
+            self.assertIn("Think before coding", agents)
+            self.assertIn("Changed-line traceability", agents)
+
     def test_dry_run_writes_nothing(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)

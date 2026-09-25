@@ -15,7 +15,11 @@ Produce meaningful evidence for the current PR head and map it to the task's acc
 4. If no meaningful check exists, report `NEEDS_VERIFICATION_CONFIG`; never add a no-op check.
 5. Inspect current-head workflow/check runs.
 6. Route failed checks back to build only for evidence-supported root causes.
-7. Review the final diff for requested behavior, unintended scope, compatibility, edge handling, missing consumers and dynamic framework wiring.
+7. Review the final diff for requested behavior, unintended scope, compatibility, edge handling, missing consumers and dynamic framework wiring. Enforce the behavioral policy:
+   - every changed line traces to the request, an acceptance criterion, required regression/compatibility/security evidence, or cleanup caused by this patch;
+   - no speculative feature, configurability, or abstraction was added without a concrete requirement;
+   - no adjacent refactor, rename, reformat, or cleanup is mixed into the task merely because it was noticed;
+   - error/edge handling covers plausible states under established contracts without invented defensive branches for provably impossible states.
 8. Review comments/documentation in touched code: require rationale where non-obvious decisions would otherwise be misread; remove/reject comments that merely narrate code; confirm touched comments/docstrings/docs are not stale and TODO/FIXME notes are actionable.
 9. Re-classify security from both the plan and the final diff. If either shows authentication, authorization, sessions, tokens, passwords, upload/filesystem, user-controlled database queries or URLs, HTML/template rendering, command/process execution, payments/webhooks, secrets/credentials or another comparable trust boundary, treat the task as security-sensitive even if planning missed it.
 10. For every security-sensitive task, produce explicit current-head security evidence:

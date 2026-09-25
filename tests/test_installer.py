@@ -36,6 +36,8 @@ class InstallerTests(unittest.TestCase):
             self.assertIn("## Behavioral coding policy", agents)
             self.assertIn("Think before coding", agents)
             self.assertIn("Changed-line traceability", agents)
+            self.assertIn("## Completion gate", agents)
+            self.assertIn("security.candidate_disposition", agents)
 
     def test_detects_pnpm_commands_from_package_manager(self):
         with tempfile.TemporaryDirectory() as tmp:

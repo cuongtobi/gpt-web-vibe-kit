@@ -29,11 +29,12 @@ Produce meaningful evidence for the current PR head and map it to the task's acc
     - established project-native security scanner when available in the authorized environment;
     - ecosystem dependency-vulnerability check when dependencies/package changes or the affected surface make it relevant and the command is available;
     - explicit unavailable/not-configured notes for missing tooling and remaining limitations.
-12. Map every acceptance item to structured evidence.
+12. Map every acceptance item to structured evidence. `PASS_VERIFIED` is invalid unless every acceptance item is `met` and has non-empty structured evidence.
+13. Run the config-aware completion gate (equivalent to `runtime/vibe_web.py completion-status <task> --config .vibe/config.json`) before marking the task ready. This enforces `verification.require_commands`, security-candidate disposition, frontend acceptance bindings and current-head evidence.
 
 ## Frontend evidence binding
 
-Frontend quality remains part of normal acceptance, not a separate completion status. If `frontend.visual_qa.evidence` is non-empty, its `head_sha` must equal the current PR head. Missing browser tooling is a limitation, not automatic success or failure; acceptance criteria that genuinely require unproduced visual evidence remain unverified.
+Frontend quality remains part of normal acceptance, not a separate completion status. Every declared `frontend.acceptance_dimensions` entry must be mapped through `frontend.acceptance_map` to normal acceptance criteria. Visual dimensions require current visual evidence or an explicit limitation; absence of both is not a pass. If `frontend.visual_qa.evidence` is non-empty, its `head_sha` must equal the current PR head. Missing browser tooling is a limitation, not automatic success or failure; acceptance criteria that genuinely require unproduced visual evidence remain unverified.
 
 ## Security evidence binding
 For a security-sensitive task, update manifest `security` so:

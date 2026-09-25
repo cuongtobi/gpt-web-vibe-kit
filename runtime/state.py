@@ -343,12 +343,20 @@ def validate_task_manifest(data: Mapping[str, Any]) -> None:
                 bool(item["evidence"]),
                 f"PASS_VERIFIED requires evidence for acceptance {item['id']}",
             )
-
-    if data.get("status") in {"ready", "complete"}:
-        violations = _completion_violations_no_validate(data, None)
+        violations = _completion_violations_no_validate(
+            data,
+            None,
+            check_commands=False,
+        )
         _require(
             not violations,
-            f"task status {data['status']} violates completion gate: " + "; ".join(violations),
+            "PASS_VERIFIED violates completion gate: " + "; ".join(violations),
+        )
+
+    if data.get("status") in {"ready", "complete"}:
+        _require(
+            verification_status == "PASS_VERIFIED",
+            f"task status {data['status']} requires PASS_VERIFIED",
         )
 
 
@@ -582,6 +590,8 @@ def _config_requires_commands(config: Mapping[str, Any] | None) -> bool:
 def _completion_violations_no_validate(
     manifest: Mapping[str, Any],
     config: Mapping[str, Any] | None,
+    *,
+    check_commands: bool = True,
 ) -> list[str]:
     violations: list[str] = []
     verification = manifest.get("verification", {})
@@ -598,7 +608,7 @@ def _completion_violations_no_validate(
         violations.append("verification status is not PASS_VERIFIED")
     if verification.get("head_sha") != manifest.get("head_sha"):
         violations.append("verification evidence is not bound to current head")
-    if _config_requires_commands(config) and not verification.get("commands"):
+    if check_commands and _config_requires_commands(config) and not verification.get("commands"):
         violations.append("verification commands are required but empty")
 
     security = manifest.get("security")

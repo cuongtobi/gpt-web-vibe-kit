@@ -75,7 +75,8 @@ Every vibe-managed task PR must contain **exactly one** machine-readable block:
     "controls": ["rotation", "revocation", "authorization boundary", "sensitive-token logging protection"],
     "evidence": [],
     "head_sha": null,
-    "limitations": []
+    "limitations": [],
+    "candidate_disposition": null
   },
   "uncertainties": []
 }
@@ -107,11 +108,14 @@ Human-readable PR text may appear outside the block.
    - relevant `symbols`
 7. Acceptance IDs are unique.
 8. Acceptance evidence is a structured list of `{type, ref}` objects.
-9. `PASS_VERIFIED` requires `verification.head_sha == task.head_sha`.
+9. `PASS_VERIFIED` requires `verification.head_sha == task.head_sha`, every acceptance criterion to be `met`, and non-empty structured evidence for every acceptance criterion.
 10. The saved context must fit the target repository's `.vibe/config.json` hard budget.
 11. `security` is optional at the schema level only for backward compatibility with older schema-v2 PRs. New tasks should include it.
 12. A `security-sensitive` manifest must identify at least one security surface.
 13. If a security-sensitive task is `PASS_VERIFIED`, `security.head_sha` must equal task `head_sha` and `security.evidence` must be non-empty.
+14. Runtime-assisted security candidates are derived from request/path/symbol evidence. If review keeps a candidate task `standard`, `security.candidate_disposition` must be non-empty before PASS.
+15. Frontend tasks declaring `acceptance_dimensions` must bind each dimension through `frontend.acceptance_map`; visual dimensions require current visual evidence or an explicit limitation.
+16. `ready`/`complete` require a current `PASS_VERIFIED`; the config-aware completion gate additionally applies `verification.require_commands`.
 
 ## Acceptance evidence examples
 
@@ -201,7 +205,7 @@ After current-head verification:
 }
 ```
 
-After a new commit moves the task to `def456`, the old PASS is stale and must not remain a valid pass.
+After a new commit moves the task to `def456`, every saved verification outcome is stale: `verification.head_sha`, `ci_run_id`, and `status` are cleared. A previously `ready`/`complete` task returns to `verifying`; security/frontend head-bound evidence is invalidated as well.
 
 ## Updating the block
 

@@ -6,6 +6,7 @@ from pathlib import Path
 
 try:
     from runtime.state import (
+        completion_violations,
         context_budget_violations,
         context_decision,
         extract_task_manifest,
@@ -16,6 +17,7 @@ try:
     from install import detect_project_context
 except ModuleNotFoundError:  # direct execution: python runtime/vibe_web.py
     from state import (
+        completion_violations,
         context_budget_violations,
         context_decision,
         extract_task_manifest,
@@ -65,6 +67,10 @@ def main() -> int:
     p.add_argument("task", type=Path)
     p.add_argument("--config", type=Path)
 
+    p = sub.add_parser("completion-status")
+    p.add_argument("task", type=Path)
+    p.add_argument("--config", type=Path)
+
     p = sub.add_parser("detect-project")
     p.add_argument("path", type=Path)
 
@@ -85,6 +91,8 @@ def main() -> int:
         validate_task_manifest(task)
         config = _load_json(args.config) if args.config else None
         violations = context_budget_violations(task, config)
+        if task.get("verification", {}).get("status") == "PASS_VERIFIED" or task.get("status") in {"ready", "complete"}:
+            violations.extend(completion_violations(task, config))
         if violations:
             raise ValueError("; ".join(violations))
         print("OK")
@@ -94,6 +102,8 @@ def main() -> int:
         task = extract_task_manifest(args.path.read_text(encoding="utf-8"))
         config = _load_json(args.config) if args.config else None
         violations = context_budget_violations(task, config)
+        if task.get("verification", {}).get("status") == "PASS_VERIFIED" or task.get("status") in {"ready", "complete"}:
+            violations.extend(completion_violations(task, config))
         if violations:
             raise ValueError("; ".join(violations))
         print("OK")
@@ -113,6 +123,12 @@ def main() -> int:
     if args.command == "budget-status":
         config = _load_json(args.config) if args.config else None
         violations = context_budget_violations(_load_json(args.task), config)
+        print(json.dumps({"ok": not violations, "violations": violations}, indent=2, sort_keys=True))
+        return 0 if not violations else 1
+
+    if args.command == "completion-status":
+        config = _load_json(args.config) if args.config else None
+        violations = completion_violations(_load_json(args.task), config)
         print(json.dumps({"ok": not violations, "violations": violations}, indent=2, sort_keys=True))
         return 0 if not violations else 1
 

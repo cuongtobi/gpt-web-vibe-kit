@@ -36,6 +36,36 @@ class InstallerTests(unittest.TestCase):
             self.assertIn("## Behavioral coding policy", agents)
             self.assertIn("Think before coding", agents)
             self.assertIn("Changed-line traceability", agents)
+            self.assertIn("## Completion gate", agents)
+            self.assertIn("security.candidate_disposition", agents)
+
+    def test_detects_pnpm_commands_from_package_manager(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            (target / "package.json").write_text(
+                json.dumps({
+                    "name": "sample",
+                    "packageManager": "pnpm@10.0.0",
+                    "scripts": {"test": "vitest", "build": "vite build"},
+                    "devDependencies": {"vite": "^7.0.0"},
+                }),
+                encoding="utf-8",
+            )
+            context = install.detect_project_context(target)
+            self.assertIn("pnpm test", context["verification"]["commands"])
+            self.assertIn("pnpm build", context["verification"]["commands"])
+            self.assertNotIn("npm test", context["verification"]["commands"])
+
+    def test_python_tests_without_pytest_use_unittest_discovery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            (target / "app.py").write_text("def add(a, b): return a + b\n", encoding="utf-8")
+            tests = target / "tests"
+            tests.mkdir()
+            (tests / "test_app.py").write_text("import unittest\n", encoding="utf-8")
+            context = install.detect_project_context(target)
+            self.assertIn("python -m unittest discover", context["verification"]["commands"])
+            self.assertNotIn("pytest", context["verification"]["commands"])
 
     def test_dry_run_writes_nothing(self):
         with tempfile.TemporaryDirectory() as tmp:

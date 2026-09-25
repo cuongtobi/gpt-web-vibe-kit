@@ -15,7 +15,7 @@ Use iterative symbol-aware GitHub search: direct evidence -> candidate files -> 
 
 Static dependency discovery is advisory. Dynamic framework wiring requires project-native tests/tooling or direct inspection.
 
-Never report `PASS_VERIFIED` unless `verification.head_sha`, task `head_sha` and the current PR head SHA all match.
+Never report `PASS_VERIFIED` unless `verification.head_sha`, task `head_sha` and the current PR head SHA all match, every acceptance criterion is `met` with structured evidence, and the config-aware completion gate passes. A new head invalidates every saved verification outcome and returns ready/complete work to verification.
 
 
 ## Behavioral coding policy
@@ -37,4 +37,8 @@ Prefer self-explanatory code. Comment **why**, constraints, invariants and non-o
 
 This workflow does not guarantee secure code. Its rule is: **security-sensitive changes cannot silently pass without explicit security review/evidence**.
 
-Treat authentication, authorization, session/token/password, upload/filesystem, user-controlled database queries or URLs, HTML/template rendering, command execution, payment/webhook and secrets/credentials work as security-sensitive. Record the affected trust boundary in the PR task manifest, apply relevant secure-coding controls, and require current-head security evidence before the task is ready.
+Treat authentication, authorization, session/token/password, upload/filesystem, user-controlled database queries or URLs, HTML/template rendering, command execution, payment/webhook and secrets/credentials work as security-sensitive. Runtime may flag conservative candidates from request/path/symbol evidence; if review keeps such a task `standard`, record a non-empty `security.candidate_disposition`. Record affected trust boundaries for sensitive tasks, apply relevant secure-coding controls, and require current-head security evidence before the task is ready.
+
+## Completion gate
+
+Before `ready`/`complete`, require every acceptance criterion to be met with evidence and run the config-aware completion gate. It enforces required verification commands, current head binding, security candidate disposition, frontend acceptance mapping and current frontend/security evidence.

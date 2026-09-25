@@ -37,7 +37,8 @@
             "null"
           ]
         }
-      }
+      },
+      "additionalProperties": false
     },
     "languages": {
       "type": "array",
@@ -79,7 +80,8 @@
           },
           "uniqueItems": true
         }
-      }
+      },
+      "additionalProperties": false
     },
     "context_limits": {
       "type": "object",
@@ -106,7 +108,8 @@
           "type": "integer",
           "minimum": 0
         }
-      }
+      },
+      "additionalProperties": false
     },
     "dependency_authority": {
       "type": "object",
@@ -121,7 +124,8 @@
         "model": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     }
   }
 }

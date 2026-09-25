@@ -93,12 +93,12 @@ Use only dimensions that materially apply:
 4. `accessibility`
 5. `content-layout-integrity`
 
-These dimensions become ordinary manifest acceptance criteria/evidence. They are not five mandatory new tests.
+These dimensions become ordinary manifest acceptance criteria/evidence. Persist `frontend.acceptance_map` so every declared dimension names one or more ordinary acceptance IDs. A dimension is complete only through those mapped criteria; they are not five mandatory new tests.
 
 ## Visual verification
 
 - Prefer browser/E2E/story/screenshot tooling already established in the target repository.
 - Do not install Playwright, Cypress, a browser extension, or another visual runtime solely because this policy is active.
 - Keep the same change to at most one primary visual inspection round plus one confirmation round. Batch findings before editing instead of entering an open-ended polish loop.
-- When visual/browser verification is unavailable, record that in `frontend.visual_qa.limitations` and use the strongest available static/runtime evidence. Never claim visual behavior was verified when it was not.
+- When visual/browser verification is unavailable, record that in `frontend.visual_qa.limitations` and use the strongest available static/runtime evidence. For visual dimensions, either current visual evidence or an explicit limitation is required. Never claim visual behavior was verified when it was not.
 - When visual evidence is recorded, bind `frontend.visual_qa.head_sha` to the current PR head. A new head invalidates the saved visual evidence.

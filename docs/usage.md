@@ -621,7 +621,7 @@ storage boundary
 authorization
 ```
 
-For these tasks, persist `security` state in the v2 manifest and require current-head security diff review + targeted tests/checks + scanner/dependency-audit evidence when available/relevant. Missing tooling is an explicit limitation, not a silent pass.
+For these tasks, persist `security` state in the v2 manifest and require current-head security diff review + targeted tests/checks + scanner/dependency-audit evidence when available/relevant. Runtime also derives conservative candidates from request/path/symbol evidence. If review keeps a candidate task `standard`, record a non-empty `security.candidate_disposition`. Missing tooling is an explicit limitation, not a silent pass.
 
 ## 25. Verify only
 
@@ -638,6 +638,14 @@ Statuses:
 - `PASS_VERIFIED`
 - `FAIL_VERIFICATION`
 - `NEEDS_VERIFICATION_CONFIG`
+
+A PASS requires every acceptance criterion to be `met` with structured evidence. Before `ready`/`complete`, run the config-aware completion gate:
+
+```bash
+python runtime/vibe_web.py completion-status task.json --config .vibe/config.json
+```
+
+This additionally checks required verification commands, security-candidate disposition, frontend `acceptance_map`, and current frontend/security evidence.
 
 ---
 
@@ -733,7 +741,8 @@ failed run
 -> root cause
 -> scoped fix
 -> new head
--> old PASS/CI stale
+-> all saved verification outcomes/head/run stale and cleared
+-> ready/complete returns to verifying
 -> verify new head
 ```
 

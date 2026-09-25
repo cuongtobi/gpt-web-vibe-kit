@@ -96,7 +96,8 @@ Every managed PR contains **exactly one** block:
     "controls": ["rotation", "revocation", "authorization boundary", "sensitive-token logging protection"],
     "evidence": [],
     "head_sha": null,
-    "limitations": []
+    "limitations": [],
+    "candidate_disposition": null
   },
   "uncertainties": []
 }
@@ -124,6 +125,11 @@ Frontend work uses the same manifest v2 and the same workflow. Only UI tasks add
       "responsive-behavior",
       "accessibility"
     ],
+    "acceptance_map": {
+      "visual-consistency": ["AC1"],
+      "responsive-behavior": ["AC2"],
+      "accessibility": ["AC3"]
+    },
     "visual_qa": {
       "max_rounds": 2,
       "browser_tooling": [],
@@ -190,7 +196,7 @@ request/error/route keywords
 -> stop at budget
 ```
 
-High-confidence identifiers are persisted in `context.symbols`; source code is not cached in the manifest.
+High-confidence identifiers are persisted in `context.symbols`; source code is not cached in the manifest. Runtime retrieval diagnostics record each selected path, score, round and request/symbol reason. `max_search_rounds` and `max_symbol_hints` are enforced by retrieval, while shallow project paths are considered before deep subtrees when the scan budget is bounded.
 
 ## Modes
 
@@ -247,7 +253,17 @@ Authentication, authorization, sessions/tokens/passwords, upload/filesystem, use
 
 New task manifests persist a `security` object with classification, surfaces, trust boundaries, abuse cases, controls, structured evidence, evidence head SHA and limitations. Older schema-v2 manifests without `security` remain valid for compatibility; an active security-sensitive task should add the block before verification.
 
-For security-sensitive tasks, normal lint/type/test/build or runtime `PASS_VERIFIED` is insufficient by itself. Security evidence must be explicit and bound to the current PR head. Missing scanners are reported as limitations rather than silently treated as success.
+For security-sensitive tasks, normal lint/type/test/build or runtime `PASS_VERIFIED` is insufficient by itself. Security evidence must be explicit and bound to the current PR head. The runtime derives conservative candidates from request/path/symbol evidence; if review keeps such a task `standard`, `security.candidate_disposition` must explain why. Missing scanners are reported as limitations rather than silently treated as success.
+
+## Completion gate
+
+`PASS_VERIFIED` requires every acceptance criterion to be `met` with structured evidence. `ready` and `complete` require a current pass. The config-aware completion gate additionally enforces `verification.require_commands`, security-candidate disposition, frontend acceptance mappings, and current-head frontend/security evidence. A new head clears every saved verification outcome and moves a previously ready/complete task back to verification.
+
+```bash
+python runtime/vibe_web.py completion-status task.json --config .vibe/config.json
+```
+
+Config v2 is a strict contract with its own JSON Schema. CI validates task/project/config templates with Draft 2020-12 JSON Schema as well as the runtime validators.
 
 ## Bootstrap
 
@@ -258,7 +274,7 @@ python install.py --target /path/to/project
 python install.py --target /path/to/project --dry-run
 ```
 
-The installer preserves an existing `AGENTS.md`, writes the `.vibe` contract and performs lightweight stack detection from common manifests/files. It can detect common Python/FastAPI/Django/Flask, JS/TS/Next/React/Vue/Nuxt/Svelte/Vite/Nest/Express, Ruby/Rails, PHP/WordPress/Laravel, Go/Rust/Java projects and established verification commands.
+The installer preserves an existing `AGENTS.md`, writes the `.vibe` contract and performs lightweight stack detection from common manifests/files. Verification detection respects npm/pnpm/yarn/bun metadata and lockfiles, and it no longer assumes pytest merely because a Python `tests/` directory exists. It can detect common Python/FastAPI/Django/Flask, JS/TS/Next/React/Vue/Nuxt/Svelte/Vite/Nest/Express, Ruby/Rails, PHP/WordPress/Laravel, Go/Rust/Java projects and established verification commands.
 
 On ChatGPT Web, use `skills/bootstrap/SKILL.md` to create the same contract directly through GitHub.
 
@@ -324,6 +340,7 @@ python runtime/vibe_web.py validate-project .vibe/project-context.json
 python runtime/vibe_web.py validate-task task.json --config .vibe/config.json
 python runtime/vibe_web.py validate-pr-body pr-body.md --config .vibe/config.json
 python runtime/vibe_web.py budget-status task.json --config .vibe/config.json
+python runtime/vibe_web.py completion-status task.json --config .vibe/config.json
 python runtime/vibe_web.py context-status task.json current-shas.json --config .vibe/config.json
 python runtime/vibe_web.py detect-project /path/to/project
 ```
@@ -333,6 +350,7 @@ Runtime code remains Python-standard-library-only.
 ## Tests
 
 ```bash
+python -m pip install "jsonschema>=4,<5"
 python -m unittest discover -s tests -v
 python -m py_compile install.py runtime/state.py runtime/retrieval.py runtime/vibe_web.py
 ```

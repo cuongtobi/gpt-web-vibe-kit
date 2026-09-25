@@ -80,6 +80,7 @@ Classify frontend work from the request plus discovered target evidence; a front
 - `intent: refine` or `redesign`;
 - optional `DESIGN.md` path/mode;
 - only the acceptance dimensions that materially apply;
+- an `acceptance_map` binding every declared frontend dimension to one or more normal acceptance IDs;
 - bounded visual-QA state with `max_rounds <= 2`.
 
 If `DESIGN.md` exists and is relevant, keep it inside the normal bounded observed context. If absent, infer the incumbent UI system from bounded current code; do not generate a design document. Map frontend dimensions into normal acceptance criteria/evidence and omit the frontend block entirely for non-UI work.
@@ -88,6 +89,8 @@ If `DESIGN.md` exists and is relevant, keep it inside the normal bounded observe
 Classify every task from both the request and discovered impact as `standard` or `security-sensitive`.
 
 Treat the task as security-sensitive when it touches authentication, authorization, sessions, tokens, passwords, file upload/filesystem access, database queries using user-controlled data, user-controlled URLs/network fetches, HTML/template rendering, command/process execution, payments/webhooks, secrets/credentials, or another comparable trust boundary.
+
+The runtime also derives conservative security-candidate surfaces from the request, target/observed paths and symbols. This is a review aid, not the final classifier. If those candidates are reviewed and the task remains `standard`, record a concise non-empty `candidate_disposition` explaining why no affected trust boundary makes the task security-sensitive.
 
 For a security-sensitive task, persist/update manifest `security` with:
 - `classification: "security-sensitive"`;

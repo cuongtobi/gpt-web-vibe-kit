@@ -1,5 +1,6 @@
 import json
 import subprocess
+import tempfile
 import sys
 import unittest
 from pathlib import Path
@@ -33,6 +34,18 @@ class CliTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(result.stdout.strip(), "OK")
+
+    def test_completion_status_reports_incomplete_task(self):
+        result = self.run_cli(
+            "completion-status",
+            str(ROOT / "templates" / "task.json"),
+            "--config",
+            str(ROOT / "templates" / "project" / ".vibe" / "config.json"),
+        )
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        data = json.loads(result.stdout)
+        self.assertFalse(data["ok"])
+        self.assertTrue(data["violations"])
 
     def test_detect_project_cli(self):
         result = self.run_cli("detect-project", str(ROOT / "tests" / "fixtures" / "fastapi-small"))

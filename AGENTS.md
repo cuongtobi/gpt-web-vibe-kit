@@ -9,7 +9,7 @@ This repository is the source kit for a GitHub-native vibe-coding workflow desig
 - Persist references to code (paths, symbols, blob SHAs, tests, consumers), not source copies.
 - Keep model context bounded and fetch current code from GitHub.
 - Static dependency evidence is advisory; current source, native tooling, tests and CI are authoritative.
-- Never claim PASS_VERIFIED without current-head runtime/CI evidence.
+- Never claim PASS_VERIFIED without current-head runtime/CI evidence, every acceptance criterion marked met with structured evidence, and the config-aware completion gate satisfied.
 - Runtime code in this kit remains Python-standard-library-only.
 
 ## Source of truth
@@ -41,7 +41,7 @@ Use these rules to reduce common LLM coding mistakes while preserving useful aut
 ## Security policy
 The kit does not guarantee that generated or modified code is secure. Its enforceable goal is: **security-sensitive changes cannot silently pass without explicit security review/evidence**.
 
-Treat a task as security-sensitive when the request or discovered impact touches authentication, authorization, sessions, tokens, passwords, file upload/filesystem access, database queries using user-controlled data, user-controlled URLs/network fetches, HTML/template rendering, command/process execution, payments/webhooks, secrets/credentials, or another comparable trust boundary.
+Treat a task as security-sensitive when the request or discovered impact touches authentication, authorization, sessions, tokens, passwords, file upload/filesystem access, database queries using user-controlled data, user-controlled URLs/network fetches, HTML/template rendering, command/process execution, payments/webhooks, secrets/credentials, or another comparable trust boundary. Runtime candidate detection is advisory; if candidate evidence is reviewed but classification remains standard, persist a concise `security.candidate_disposition`.
 
 For security-sensitive work:
 - plan records security surfaces, trust boundaries, abuse/failure cases, controls to preserve and required evidence;
@@ -55,6 +55,7 @@ For security-sensitive work:
 When behavior changes, update tests and both README variants.
 
 ```bash
+python -m pip install "jsonschema>=4,<5"
 python -m unittest discover -s tests -v
-python -m py_compile install.py runtime/state.py runtime/vibe_web.py
+python -m py_compile install.py runtime/state.py runtime/retrieval.py runtime/vibe_web.py
 ```

@@ -6,10 +6,13 @@ from runtime.state import (
     ManifestError,
     TASK_END,
     TASK_START,
+    completion_violations,
     context_budget_violations,
     context_decision,
     extract_task_manifest,
     render_task_manifest,
+    security_candidate_surfaces,
+    task_ready_for_completion,
     update_manifest_head,
     validate_project_context,
     validate_task_manifest,
@@ -54,15 +57,38 @@ def task_manifest():
             "evidence": [],
             "head_sha": None,
             "limitations": [],
+            "candidate_disposition": None,
         },
         "uncertainties": [],
     }
 
 
-def config(**overrides):
-    context = {"max_dependency_depth": 2,"max_source_files": 15,"max_test_files": 6,"max_related_modules": 6,"rebuild_changed_ratio": 0.5}
+def config(*, require_commands=True, **overrides):
+    context = {
+        "max_dependency_depth": 2,
+        "max_source_files": 15,
+        "max_test_files": 6,
+        "max_related_modules": 6,
+        "rebuild_changed_ratio": 0.5,
+        "max_search_rounds": 3,
+        "max_symbol_hints": 24,
+    }
     context.update(overrides)
-    return {"version": 2,"context": context,"verification": {"commands": []}}
+    return {
+        "version": 2,
+        "workflow": "github-native",
+        "manifest_schema_version": 2,
+        "kit_repository": "cuongtobi/gpt-web-vibe-kit",
+        "github": {"task_state": "pull_request_body", "branch_prefix": "vibe/"},
+        "context": context,
+        "verification": {"require_commands": require_commands, "commands": []},
+    }
+
+
+def mark_acceptance_met(manifest):
+    manifest["acceptance"][0]["status"] = "met"
+    manifest["acceptance"][0]["evidence"] = [{"type": "test", "ref": "tests/test_auth.py::test_refresh"}]
+    return manifest
 
 
 class StateTests(unittest.TestCase):
@@ -130,7 +156,9 @@ class StateTests(unittest.TestCase):
         with self.assertRaises(ManifestError): validate_task_manifest(manifest)
 
     def test_verification_current_helper(self):
-        manifest = task_manifest(); manifest["verification"] = {"commands":["pytest"],"head_sha":"head123","ci_run_id":123,"status":"PASS_VERIFIED"}
+        manifest = mark_acceptance_met(task_manifest())
+        manifest["security"]["candidate_disposition"] = "request mentions auth/session tokens, but this fixture models a standard-only compatibility case"
+        manifest["verification"] = {"commands":["pytest"],"head_sha":"head123","ci_run_id":123,"status":"PASS_VERIFIED"}
         self.assertTrue(verification_is_current(manifest))
 
     def test_new_head_invalidates_pass(self):
@@ -150,6 +178,7 @@ class StateTests(unittest.TestCase):
             "abuse_cases": ["replay revoked refresh token"],
             "controls": ["rotation and revocation"],
         })
+        mark_acceptance_met(manifest)
         manifest["verification"] = {"commands":["pytest"],"head_sha":"head123","ci_run_id":123,"status":"PASS_VERIFIED"}
         with self.assertRaises(ManifestError):
             validate_task_manifest(manifest)
@@ -277,6 +306,107 @@ class StateTests(unittest.TestCase):
         updated = update_manifest_head(manifest, "head456")
         self.assertIsNone(updated["frontend"]["visual_qa"]["head_sha"])
         self.assertEqual(updated["frontend"]["visual_qa"]["evidence"], [])
+
+    def test_pass_verified_requires_met_acceptance_with_evidence(self):
+        manifest = task_manifest()
+        manifest["security"]["candidate_disposition"] = "fixture explicitly remains standard"
+        manifest["verification"] = {"commands": ["pytest"], "head_sha": "head123", "ci_run_id": 123, "status": "PASS_VERIFIED"}
+        with self.assertRaises(ManifestError):
+            validate_task_manifest(manifest)
+        mark_acceptance_met(manifest)
+        validate_task_manifest(manifest)
+
+    def test_security_candidate_classifier_detects_sensitive_request(self):
+        candidates = security_candidate_surfaces(task_manifest())
+        self.assertIn("authentication", candidates)
+        self.assertIn("session-token-password", candidates)
+
+    def test_standard_security_candidate_requires_disposition_before_pass(self):
+        manifest = mark_acceptance_met(task_manifest())
+        manifest["verification"] = {"commands": ["pytest"], "head_sha": "head123", "ci_run_id": 123, "status": "PASS_VERIFIED"}
+        with self.assertRaises(ManifestError):
+            validate_task_manifest(manifest)
+        manifest["security"]["candidate_disposition"] = "fixture confirms no real trust boundary change"
+        validate_task_manifest(manifest)
+
+    def test_completion_gate_enforces_project_command_policy(self):
+        manifest = mark_acceptance_met(task_manifest())
+        manifest["security"]["candidate_disposition"] = "fixture confirms no real trust boundary change"
+        manifest["verification"] = {"commands": [], "head_sha": "head123", "ci_run_id": 123, "status": "PASS_VERIFIED"}
+        validate_task_manifest(manifest)
+        self.assertTrue(task_ready_for_completion(manifest, config(require_commands=False)))
+        violations = completion_violations(manifest, config(require_commands=True))
+        self.assertTrue(any("commands are required" in item for item in violations))
+
+    def test_ready_and_complete_require_pass_verified(self):
+        for status in ("ready", "complete"):
+            manifest = task_manifest()
+            manifest["status"] = status
+            with self.assertRaises(ManifestError):
+                validate_task_manifest(manifest)
+
+    def test_frontend_completion_requires_acceptance_map_and_visual_disposition(self):
+        manifest = mark_acceptance_met(task_manifest())
+        manifest["security"]["candidate_disposition"] = "fixture confirms no real trust boundary change"
+        manifest["frontend"] = {
+            "surface": "application",
+            "intent": "refine",
+            "design_context": {"path": None, "mode": "infer-existing-ui"},
+            "acceptance_dimensions": ["responsive-behavior"],
+            "visual_qa": {
+                "max_rounds": 2,
+                "browser_tooling": [],
+                "evidence": [],
+                "head_sha": None,
+                "limitations": [],
+            },
+        }
+        manifest["verification"] = {"commands": ["pytest"], "head_sha": "head123", "ci_run_id": 123, "status": "PASS_VERIFIED"}
+        with self.assertRaises(ManifestError):
+            validate_task_manifest(manifest)
+        manifest["frontend"]["acceptance_map"] = {"responsive-behavior": ["AC1"]}
+        manifest["frontend"]["visual_qa"]["limitations"] = ["browser tooling unavailable"]
+        validate_task_manifest(manifest)
+
+    def test_head_change_clears_all_verification_outcomes_and_downgrades_ready(self):
+        for status in ("FAIL_VERIFICATION", "NEEDS_VERIFICATION_CONFIG"):
+            manifest = task_manifest()
+            manifest["verification"] = {"commands": ["pytest"], "head_sha": "head123", "ci_run_id": 123, "status": status}
+            updated = update_manifest_head(manifest, "head456")
+            self.assertIsNone(updated["verification"]["head_sha"])
+            self.assertIsNone(updated["verification"]["status"])
+            self.assertIsNone(updated["verification"]["ci_run_id"])
+
+        ready = mark_acceptance_met(task_manifest())
+        ready["security"]["candidate_disposition"] = "fixture confirms no real trust boundary change"
+        ready["verification"] = {"commands": ["pytest"], "head_sha": "head123", "ci_run_id": 123, "status": "PASS_VERIFIED"}
+        ready["status"] = "ready"
+        validate_task_manifest(ready)
+        updated = update_manifest_head(ready, "head456")
+        self.assertEqual(updated["status"], "verifying")
+
+    def test_config_v2_rejects_unknown_and_invalid_policy_fields(self):
+        valid = config()
+        validate_vibe_config(valid)
+        invalid = json.loads(json.dumps(valid))
+        invalid["context"]["max_search_rounds"] = 0
+        with self.assertRaises(ManifestError):
+            validate_vibe_config(invalid)
+        invalid = json.loads(json.dumps(valid))
+        invalid["verification"]["require_commands"] = "yes"
+        with self.assertRaises(ManifestError):
+            validate_vibe_config(invalid)
+        invalid = json.loads(json.dumps(valid))
+        invalid["unexpected"] = True
+        with self.assertRaises(ManifestError):
+            validate_vibe_config(invalid)
+
+    def test_project_context_rejects_unknown_nested_fields(self):
+        root = Path(__file__).resolve().parents[1]
+        data = json.loads((root / "templates/project/.vibe/project-context.json").read_text(encoding="utf-8"))
+        data["project"]["unexpected"] = True
+        with self.assertRaises(ManifestError):
+            validate_project_context(data)
 
     def test_project_context_template_valid(self):
         root = Path(__file__).resolve().parents[1]; data = json.loads((root / "templates/project/.vibe/project-context.json").read_text(encoding="utf-8")); validate_project_context(data)

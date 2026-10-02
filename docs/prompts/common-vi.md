@@ -2,6 +2,18 @@
 
 Copy template ngắn nhất phù hợp với task.
 
+## Bootstrap dự án
+
+```text
+@GitHub làm việc với repo <owner>/<repo>.
+
+Sử dụng cuongtobi/gpt-web-vibe-kit.
+Đọc skills/bootstrap/SKILL.md và bootstrap repository này.
+
+Giữ nguyên AGENTS.md nếu đã tồn tại.
+Detect stack, framework, entrypoint và verification command hiện có.
+```
+
 ## Full implementation
 
 ```text

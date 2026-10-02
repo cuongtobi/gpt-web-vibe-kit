@@ -2,6 +2,18 @@
 
 Copy the smallest template that matches the task.
 
+## Bootstrap a repository
+
+```text
+@GitHub work with <owner>/<repo>.
+
+Use cuongtobi/gpt-web-vibe-kit.
+Read skills/bootstrap/SKILL.md and bootstrap this repository.
+
+Preserve any existing AGENTS.md.
+Detect the stack, frameworks, entrypoints and established verification commands.
+```
+
 ## Full implementation
 
 ```text

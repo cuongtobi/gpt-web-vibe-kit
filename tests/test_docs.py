@@ -57,6 +57,14 @@ class DocumentationStructureTests(unittest.TestCase):
                 with self.subTest(source=relative, target=target):
                     self.assertTrue(resolved.exists())
 
+    def test_prompt_libraries_include_bootstrap_template(self):
+        english = (ROOT / "docs/prompts/common.md").read_text(encoding="utf-8")
+        vietnamese = (ROOT / "docs/prompts/common-vi.md").read_text(encoding="utf-8")
+        self.assertIn("## Bootstrap a repository", english)
+        self.assertIn("Read skills/bootstrap/SKILL.md", english)
+        self.assertIn("## Bootstrap dự án", vietnamese)
+        self.assertIn("Đọc skills/bootstrap/SKILL.md", vietnamese)
+
     def test_usage_pages_are_routers_not_monolithic_handbooks(self):
         english = (ROOT / "docs/usage.md").read_text(encoding="utf-8")
         vietnamese = (ROOT / "docs/usage-vi.md").read_text(encoding="utf-8")

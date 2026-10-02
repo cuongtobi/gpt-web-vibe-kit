@@ -1,0 +1,41 @@
+# Configuration reference
+
+`.vibe/config.json` is the stable project-level workflow configuration.
+
+Config v2 defines:
+
+- GitHub-native workflow/task-state settings;
+- manifest schema version;
+- kit repository identity;
+- hard context/retrieval limits;
+- verification command policy.
+
+Example:
+
+```json
+{
+  "version": 2,
+  "workflow": "github-native",
+  "manifest_schema_version": 2,
+  "kit_repository": "cuongtobi/gpt-web-vibe-kit",
+  "github": {
+    "task_state": "pull_request_body",
+    "branch_prefix": "vibe/"
+  },
+  "context": {
+    "max_dependency_depth": 2,
+    "max_source_files": 15,
+    "max_test_files": 6,
+    "max_related_modules": 6,
+    "rebuild_changed_ratio": 0.5,
+    "max_search_rounds": 3,
+    "max_symbol_hints": 24
+  },
+  "verification": {
+    "require_commands": true,
+    "commands": []
+  }
+}
+```
+
+The canonical schema is `schemas/config.schema.json`; runtime validation lives in `runtime/state.py`.
